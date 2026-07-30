@@ -196,12 +196,15 @@ export default function OnboardingPage() {
                 <div className="flex flex-wrap gap-2">
                   {CONSEQUENCE_ANCHOR_EXAMPLES.map((example) => (
                     <button
-                      key={example}
+                      key={example.description}
                       type="button"
-                      onClick={() => setExperienceDescription(example)}
+                      onClick={() => {
+                        setExperienceDescription(example.description);
+                        setExperienceType(example.experienceType);
+                      }}
                       className="text-xs rounded-full border border-ember/50 px-3 py-1.5 hover:bg-ember/20 transition-colors"
                     >
-                      {example}
+                      {example.description}
                     </button>
                   ))}
                 </div>

@@ -17,11 +17,11 @@ export function experienceTypeLabel(type: ExperienceType): string {
  * users calibrate against something that would actually sting rather than
  * something they'd happily pay for anyway.
  */
-export const CONSEQUENCE_ANCHOR_EXAMPLES: string[] = [
-  "A three-course dinner with wine for the whole family",
-  "Front-row concert tickets",
-  "A weekend at a nice hotel",
-  "A full day at a spa, all-inclusive",
+export const CONSEQUENCE_ANCHOR_EXAMPLES: { description: string; experienceType: ExperienceType }[] = [
+  { description: "A three-course dinner with wine for the whole family", experienceType: "dinner" },
+  { description: "Front-row concert tickets", experienceType: "tickets_event" },
+  { description: "A weekend at a nice hotel", experienceType: "trip" },
+  { description: "A full day at a spa, all-inclusive", experienceType: "activity" },
 ];
 
 export const CONSEQUENCE_ANCHOR_COPY =
