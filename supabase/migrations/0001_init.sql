@@ -1,4 +1,4 @@
--- Failsafe schema: profiles, challenges, recipients, checkins, final reports.
+-- Failsafe schema: profiles, challenges, checkins, final reports.
 -- Run this in the Supabase SQL editor, or via `supabase db push`.
 
 create extension if not exists pgcrypto;
@@ -61,8 +61,16 @@ create table if not exists public.challenges (
   cue_situation text not null,
   cue_action text not null,
 
-  consequence_description text not null,
-  recipient_name text not null,
+  -- The consequence: an experience the user pays for on behalf of the
+  -- beneficiaries below if they fail. estimated_cost_cents is for the
+  -- user's own budgeting reference only and is never surfaced as the
+  -- primary framing anywhere in the UI (the experience + beneficiaries are).
+  beneficiaries text[] not null,
+  experience_type text not null check (
+    experience_type in ('dinner', 'tickets_event', 'trip', 'activity', 'other')
+  ),
+  experience_description text not null,
+  estimated_cost_cents int,
 
   start_date date not null default current_date,
   status text not null default 'active' check (
@@ -96,35 +104,6 @@ alter table public.challenges enable row level security;
 
 create policy "challenges: owner full access" on public.challenges
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
--- ---------------------------------------------------------------------------
--- recipients: who benefits from the consequence if the challenge is failed.
--- ---------------------------------------------------------------------------
-create table if not exists public.recipients (
-  id uuid primary key default gen_random_uuid(),
-  challenge_id uuid not null references public.challenges (id) on delete cascade,
-  name text not null,
-  invite_message text,
-  created_at timestamptz not null default now()
-);
-
-create index if not exists recipients_challenge_id_idx on public.recipients (challenge_id);
-
-alter table public.recipients enable row level security;
-
-create policy "recipients: owner full access" on public.recipients
-  for all using (
-    exists (
-      select 1 from public.challenges c
-      where c.id = recipients.challenge_id and c.user_id = auth.uid()
-    )
-  )
-  with check (
-    exists (
-      select 1 from public.challenges c
-      where c.id = recipients.challenge_id and c.user_id = auth.uid()
-    )
-  );
 
 -- ---------------------------------------------------------------------------
 -- checkins: weekly self-report.
@@ -205,8 +184,9 @@ select
   c.difficulty_tier,
   c.duration_weeks_min,
   c.duration_weeks_max,
-  c.consequence_description,
-  c.recipient_name,
+  c.beneficiaries,
+  c.experience_type,
+  c.experience_description,
   c.start_date,
   c.status,
   c.completed_at,

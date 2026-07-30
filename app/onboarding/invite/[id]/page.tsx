@@ -2,9 +2,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getHabitCategory } from "@/lib/habits";
+import { formatBeneficiaries } from "@/lib/consequence";
 import { LetterCard } from "@/components/LetterCard";
 import { Button } from "@/components/ui";
 import { CopyInviteButton } from "@/components/CopyInviteButton";
+import { AddToHomeScreenPrompt } from "@/components/AddToHomeScreenPrompt";
 
 export default async function InvitePage({
   params,
@@ -30,12 +32,13 @@ export default async function InvitePage({
   const category = getHabitCategory(challenge.category);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
   const shareUrl = `${siteUrl}/share/${challenge.share_token}`;
+  const beneficiaryNames = formatBeneficiaries(challenge.beneficiaries);
 
   const message = buildInviteMessage({
-    recipientName: challenge.recipient_name,
+    beneficiaryNames,
     habitTitle: challenge.habit_title,
     frequency: challenge.frequency,
-    consequenceDescription: challenge.consequence_description,
+    experienceDescription: challenge.experience_description,
     shareUrl,
   });
 
@@ -43,12 +46,16 @@ export default async function InvitePage({
     <div className="flex-1 px-6 py-14">
       <div className="max-w-xl mx-auto mb-8 text-center">
         <p className="text-sm text-parchment/70">
-          Your challenge is set. Now send this to {challenge.recipient_name} yourself —
+          Your challenge is set. Now send this to {beneficiaryNames} yourself —
           Failsafe never emails them for you.
         </p>
       </div>
 
-      <LetterCard variant="neutral" eyebrow="A Promise, Sealed" title={`For ${challenge.recipient_name}`}>
+      <div className="max-w-xl mx-auto">
+        <AddToHomeScreenPrompt />
+      </div>
+
+      <LetterCard variant="neutral" eyebrow="A Promise, Sealed" title={`For ${beneficiaryNames}`}>
         <p className="whitespace-pre-line leading-relaxed">{message}</p>
       </LetterCard>
 
@@ -69,28 +76,27 @@ export default async function InvitePage({
 }
 
 function buildInviteMessage({
-  recipientName,
+  beneficiaryNames,
   habitTitle,
   frequency,
-  consequenceDescription,
+  experienceDescription,
   shareUrl,
 }: {
-  recipientName: string;
+  beneficiaryNames: string;
   habitTitle: string;
   frequency: string;
-  consequenceDescription: string;
+  experienceDescription: string;
   shareUrl: string;
 }) {
-  return `Dear ${recipientName},
+  return `Dear ${beneficiaryNames},
 
 I'm making you a promise — and putting something real behind it.
 
 Starting today, I'm committing to: ${habitTitle} (${frequency}).
 
-If I fail to keep this promise, I will pay for the following on your behalf, as the consequence of falling short:
-${consequenceDescription}
+If I fail to keep this promise, you'll get treated to: ${experienceDescription}.
 
-I won't be there for it. It's yours, win or lose on my part.
+I just won't be there for it. It's yours, win or lose on my part.
 
 You can follow how it goes here:
 ${shareUrl}

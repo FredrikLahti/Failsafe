@@ -6,6 +6,7 @@ import { LetterCard } from "@/components/LetterCard";
 import { Button } from "@/components/ui";
 import { getHabitCategory } from "@/lib/habits";
 import { currentWeekNumber } from "@/lib/streak";
+import { experienceTypeLabel, formatBeneficiaries } from "@/lib/consequence";
 
 export default async function SharePage({
   params,
@@ -27,6 +28,8 @@ export default async function SharePage({
   const isActive = share.status === "active";
   const isSuccess = share.status === "completed_success";
   const variant = isActive ? "neutral" : isSuccess ? "gold" : "ember";
+  const beneficiaryNames = formatBeneficiaries(share.beneficiaries);
+  const experienceLabel = experienceTypeLabel(share.experience_type);
 
   return (
     <div className="flex-1 flex flex-col px-6 py-14">
@@ -35,10 +38,10 @@ export default async function SharePage({
         eyebrow={category.label}
         title={
           isActive
-            ? `A promise in progress, for ${share.recipient_name}`
+            ? `${experienceLabel} on the line, for ${beneficiaryNames}`
             : isSuccess
               ? "A promise kept"
-              : `A promise made to ${share.recipient_name}`
+              : `A promise made to ${beneficiaryNames}`
         }
       >
         <p className="mb-4">
@@ -47,23 +50,24 @@ export default async function SharePage({
         {isActive ? (
           <p className="mb-4">
             Currently in week {currentWeekNumber(share.start_date)} of a{" "}
-            {share.duration_weeks_min}-{share.duration_weeks_max} week plan. If this
-            isn&rsquo;t kept, the consequence is: {share.consequence_description}, for{" "}
-            {share.recipient_name}.
+            {share.duration_weeks_min}-{share.duration_weeks_max} week plan. If
+            this isn&rsquo;t kept, {beneficiaryNames} get treated to:{" "}
+            {share.experience_description}. The person making this promise
+            just won&rsquo;t be there for it.
           </p>
         ) : isSuccess ? (
           <p className="mb-4">
-            The habit was kept for the full commitment. {share.recipient_name} was
-            never called on for the consequence.
+            The habit was kept for the full commitment. {beneficiaryNames}{" "}
+            never had to be treated.
           </p>
         ) : (
           <p className="mb-4">
-            The habit wasn&rsquo;t kept this time. The consequence was:{" "}
-            {share.consequence_description}, for {share.recipient_name}.
+            The habit wasn&rsquo;t kept this time. {beneficiaryNames} were
+            treated to: {share.experience_description}.
             {share.outcome === "failed_paid"
-              ? " It was carried out."
+              ? " It happened."
               : share.outcome === "failed_unpaid"
-                ? " It has not been carried out yet."
+                ? " It hasn't happened yet."
                 : ""}
           </p>
         )}

@@ -18,6 +18,8 @@ export type CheckinStatus = "good" | "partial" | "bad" | "missed";
 
 export type ReportOutcome = "completed" | "failed_paid" | "failed_unpaid";
 
+export type ExperienceType = "dinner" | "tickets_event" | "trip" | "activity" | "other";
+
 export type ProfileRow = {
   id: string;
   email: string;
@@ -36,8 +38,11 @@ export type ChallengeRow = {
   duration_weeks_max: number;
   cue_situation: string;
   cue_action: string;
-  consequence_description: string;
-  recipient_name: string;
+  beneficiaries: string[];
+  experience_type: ExperienceType;
+  experience_description: string;
+  /** Internal budgeting reference only — never surfaced as the primary framing in the UI. */
+  estimated_cost_cents: number | null;
   start_date: string;
   status: ChallengeStatus;
   share_token: string;
@@ -45,14 +50,6 @@ export type ChallengeRow = {
   last_reminder_at: string | null;
   created_at: string;
   completed_at: string | null;
-};
-
-export type RecipientRow = {
-  id: string;
-  challenge_id: string;
-  name: string;
-  invite_message: string | null;
-  created_at: string;
 };
 
 export type CheckinRow = {
@@ -84,8 +81,9 @@ export type ChallengeShareRow = {
   difficulty_tier: DifficultyTier;
   duration_weeks_min: number;
   duration_weeks_max: number;
-  consequence_description: string;
-  recipient_name: string;
+  beneficiaries: string[];
+  experience_type: ExperienceType;
+  experience_description: string;
   start_date: string;
   status: ChallengeStatus;
   completed_at: string | null;
@@ -114,8 +112,9 @@ export type Database = {
           duration_weeks_max: number;
           cue_situation: string;
           cue_action: string;
-          consequence_description: string;
-          recipient_name: string;
+          beneficiaries: string[];
+          experience_type: ExperienceType;
+          experience_description: string;
         };
         Update: Partial<ChallengeRow>;
         Relationships: [
@@ -124,20 +123,6 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      recipients: {
-        Row: RecipientRow;
-        Insert: Partial<RecipientRow> & { challenge_id: string; name: string };
-        Update: Partial<RecipientRow>;
-        Relationships: [
-          {
-            foreignKeyName: "recipients_challenge_id_fkey";
-            columns: ["challenge_id"];
-            isOneToOne: false;
-            referencedRelation: "challenges";
             referencedColumns: ["id"];
           },
         ];

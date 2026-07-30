@@ -3,10 +3,20 @@
 import { useMemo, useState } from "react";
 import { Button, ErrorText, Input, Label, Textarea } from "@/components/ui";
 import { HABIT_CATEGORIES, expectationCopy, DIFFICULTY_RANGES } from "@/lib/habits";
-import type { HabitCategory } from "@/lib/types/database";
+import {
+  CONSEQUENCE_ANCHOR_COPY,
+  CONSEQUENCE_ANCHOR_EXAMPLES,
+  EXPERIENCE_TYPES,
+  consequenceSentence,
+  experienceTypeLabel,
+  formatBeneficiaries,
+  parseBeneficiaries,
+} from "@/lib/consequence";
+import type { ExperienceType, HabitCategory } from "@/lib/types/database";
 import { createChallenge } from "@/app/onboarding/actions";
 
 type Step = 1 | 2 | 3 | 4 | 5;
+type SelfCheck = "sting" | "no_big_deal" | null;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState<Step>(1);
@@ -15,8 +25,11 @@ export default function OnboardingPage() {
   const [frequency, setFrequency] = useState("");
   const [cueSituation, setCueSituation] = useState("");
   const [cueAction, setCueAction] = useState("");
-  const [consequenceDescription, setConsequenceDescription] = useState("");
-  const [recipientName, setRecipientName] = useState("");
+  const [beneficiaries, setBeneficiaries] = useState("");
+  const [experienceType, setExperienceType] = useState<ExperienceType>("dinner");
+  const [experienceDescription, setExperienceDescription] = useState("");
+  const [estimatedCost, setEstimatedCost] = useState("");
+  const [selfCheck, setSelfCheck] = useState<SelfCheck>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,14 +51,17 @@ export default function OnboardingPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const dollars = parseFloat(estimatedCost);
       await createChallenge({
         category,
         habitTitle,
         frequency,
         cueSituation,
         cueAction,
-        consequenceDescription,
-        recipientName,
+        beneficiaries,
+        experienceType,
+        experienceDescription,
+        estimatedCostCents: Number.isFinite(dollars) ? Math.round(dollars * 100) : null,
       });
     } catch (e) {
       if (e instanceof Error && e.message !== "NEXT_REDIRECT") {
@@ -54,6 +70,8 @@ export default function OnboardingPage() {
       }
     }
   }
+
+  const showSelfCheck = experienceDescription.trim() !== "" && estimatedCost.trim() !== "";
 
   return (
     <div className="flex-1 px-6 py-12">
@@ -136,32 +154,132 @@ export default function OnboardingPage() {
             title="Choose your consequence"
             onBack={() => setStep(3)}
             onNext={() => setStep(5)}
-            nextDisabled={!consequenceDescription.trim() || !recipientName.trim()}
+            nextDisabled={
+              !beneficiaries.trim() || !experienceDescription.trim()
+            }
           >
             <p className="text-sm text-parchment/70 mb-6">
-              If you fail, you pay for this experience on someone else&rsquo;s
-              behalf. You don&rsquo;t get to attend it.
+              If you fail, you&rsquo;ll treat the people below to this
+              experience — you just won&rsquo;t be there.
             </p>
+
             <div className="space-y-5">
               <div>
-                <Label htmlFor="consequence">The experience</Label>
-                <Textarea
-                  id="consequence"
-                  rows={3}
-                  placeholder="A weekend trip to the coast, a cooking class, tickets to a show…"
-                  value={consequenceDescription}
-                  onChange={(e) => setConsequenceDescription(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="recipient">Who receives it if you fail</Label>
+                <Label htmlFor="beneficiaries">Who benefits if you fail</Label>
                 <Input
-                  id="recipient"
-                  placeholder="Recipient's name"
-                  value={recipientName}
-                  onChange={(e) => setRecipientName(e.target.value)}
+                  id="beneficiaries"
+                  placeholder="Mom, Dad, my sister"
+                  value={beneficiaries}
+                  onChange={(e) => setBeneficiaries(e.target.value)}
+                />
+                <p className="mt-1.5 text-xs text-ash">Separate names with commas.</p>
+              </div>
+
+              <div>
+                <Label htmlFor="experience-type">Experience type</Label>
+                <select
+                  id="experience-type"
+                  value={experienceType}
+                  onChange={(e) => setExperienceType(e.target.value as ExperienceType)}
+                  className="w-full rounded-md bg-ink border border-sage/50 px-3.5 py-2.5 text-parchment outline-none focus:border-gold"
+                >
+                  {EXPERIENCE_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="rounded-md border border-ember/40 bg-ember/10 px-4 py-4">
+                <p className="text-sm text-parchment/85 mb-3">{CONSEQUENCE_ANCHOR_COPY}</p>
+                <div className="flex flex-wrap gap-2">
+                  {CONSEQUENCE_ANCHOR_EXAMPLES.map((example) => (
+                    <button
+                      key={example}
+                      type="button"
+                      onClick={() => setExperienceDescription(example)}
+                      className="text-xs rounded-full border border-ember/50 px-3 py-1.5 hover:bg-ember/20 transition-colors"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="experience-description">Describe the experience</Label>
+                <Textarea
+                  id="experience-description"
+                  rows={3}
+                  placeholder="A three-course dinner with wine for the whole family"
+                  value={experienceDescription}
+                  onChange={(e) => setExperienceDescription(e.target.value)}
                 />
               </div>
+
+              <div>
+                <Label htmlFor="estimated-cost">Estimated cost (for your own reference only)</Label>
+                <Input
+                  id="estimated-cost"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="1"
+                  placeholder="400"
+                  value={estimatedCost}
+                  onChange={(e) => setEstimatedCost(e.target.value)}
+                />
+                <p className="mt-1.5 text-xs text-ash">
+                  This is just for you to budget against — it&rsquo;s never shown to anyone else.
+                </p>
+              </div>
+
+              {beneficiaries.trim() && experienceDescription.trim() && (
+                <p className="text-sm text-parchment/60 font-mono">
+                  &ldquo;{consequenceSentence({
+                    beneficiaries: parseBeneficiaries(beneficiaries),
+                    experienceDescription,
+                  })}&rdquo;
+                </p>
+              )}
+
+              {showSelfCheck && (
+                <div className="rounded-md border border-sage/40 px-4 py-4">
+                  <p className="text-sm font-medium mb-3">
+                    If you&rsquo;re honest, does this feel like:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelfCheck("no_big_deal")}
+                      className={`text-left rounded-md border px-4 py-3 transition-colors ${
+                        selfCheck === "no_big_deal"
+                          ? "border-gold bg-gold/10"
+                          : "border-sage/40 hover:border-sage"
+                      }`}
+                    >
+                      (a) No big deal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelfCheck("sting")}
+                      className={`text-left rounded-md border px-4 py-3 transition-colors ${
+                        selfCheck === "sting"
+                          ? "border-gold bg-gold/10"
+                          : "border-sage/40 hover:border-sage"
+                      }`}
+                    >
+                      (b) This would genuinely sting, but I could handle it
+                    </button>
+                  </div>
+                  {selfCheck === "no_big_deal" && (
+                    <p className="mt-3 text-sm text-gold">
+                      Consider going bigger — the whole point is that you really don&rsquo;t want to lose this challenge.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </StepShell>
         )}
@@ -177,9 +295,22 @@ export default function OnboardingPage() {
             <dl className="space-y-4 text-sm">
               <ReviewRow label="Habit" value={`${habitTitle} · ${frequency}`} />
               <ReviewRow label="Cue" value={`If ${cueSituation}, then ${cueAction}`} />
-              <ReviewRow label="Timeline" value={`${DIFFICULTY_RANGES[definition.difficulty].min}-${DIFFICULTY_RANGES[definition.difficulty].max} weeks (${DIFFICULTY_RANGES[definition.difficulty].label})`} />
-              <ReviewRow label="Consequence" value={consequenceDescription} />
-              <ReviewRow label="Recipient" value={recipientName} />
+              <ReviewRow
+                label="Timeline"
+                value={`${DIFFICULTY_RANGES[definition.difficulty].min}-${DIFFICULTY_RANGES[definition.difficulty].max} weeks (${DIFFICULTY_RANGES[definition.difficulty].label})`}
+              />
+              <ReviewRow
+                label="Consequence"
+                value={consequenceSentence({
+                  beneficiaries: parseBeneficiaries(beneficiaries),
+                  experienceDescription,
+                })}
+              />
+              <ReviewRow label="Experience type" value={experienceTypeLabel(experienceType)} />
+              <ReviewRow label="Beneficiaries" value={formatBeneficiaries(parseBeneficiaries(beneficiaries))} />
+              {estimatedCost.trim() && (
+                <ReviewRow label="Your budgeting reference (private)" value={`$${estimatedCost}`} />
+              )}
             </dl>
             <ErrorText>{error}</ErrorText>
           </StepShell>

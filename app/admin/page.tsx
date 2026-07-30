@@ -4,6 +4,7 @@ import { isAdminAuthed } from "@/lib/admin-auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getHabitCategory } from "@/lib/habits";
 import { computeStreak, currentWeekNumber, fillMissedWeeks } from "@/lib/streak";
+import { experienceTypeLabel, formatBeneficiaries } from "@/lib/consequence";
 import type { ChallengeRow, CheckinStatus } from "@/lib/types/database";
 
 interface CheckinLite {
@@ -72,7 +73,8 @@ export default async function AdminPage() {
                 <th className="py-2 pr-4">User</th>
                 <th className="py-2 pr-4">Category</th>
                 <th className="py-2 pr-4">Habit / goal</th>
-                <th className="py-2 pr-4">Recipient</th>
+                <th className="py-2 pr-4">Beneficiaries</th>
+                <th className="py-2 pr-4">Experience</th>
                 <th className="py-2 pr-4">Status</th>
                 <th className="py-2 pr-4">Progress</th>
                 <th className="py-2 pr-4">Streak</th>
@@ -92,7 +94,13 @@ export default async function AdminPage() {
                     <td className="py-2 pr-4">{email}</td>
                     <td className="py-2 pr-4">{getHabitCategory(c.category).label}</td>
                     <td className="py-2 pr-4">{c.habit_title}</td>
-                    <td className="py-2 pr-4">{c.recipient_name}</td>
+                    <td className="py-2 pr-4">{formatBeneficiaries(c.beneficiaries)}</td>
+                    <td className="py-2 pr-4">
+                      {experienceTypeLabel(c.experience_type)}
+                      {c.estimated_cost_cents != null && (
+                        <span className="text-ash"> (~${(c.estimated_cost_cents / 100).toFixed(0)})</span>
+                      )}
+                    </td>
                     <td className="py-2 pr-4">{STATUS_LABEL[c.status] ?? c.status}</td>
                     <td className="py-2 pr-4 font-mono">
                       {c.status === "active"

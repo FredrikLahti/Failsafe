@@ -6,6 +6,7 @@ import { Button } from "@/components/ui";
 import { getHabitCategory } from "@/lib/habits";
 import { computeStreak, consecutiveMissedStreak, currentWeekNumber, fillMissedWeeks } from "@/lib/streak";
 import { computeBadges } from "@/lib/badges";
+import { AddToHomeScreenPrompt } from "@/components/AddToHomeScreenPrompt";
 import type { ChallengeRow } from "@/lib/types/database";
 
 export default async function DashboardPage() {
@@ -28,6 +29,7 @@ export default async function DashboardPage() {
     <div className="flex-1 flex flex-col">
       <AppNav email={user.email} />
       <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-10">
+        <AddToHomeScreenPrompt />
         {active ? (
           <ActiveChallengePanel challenge={active} />
         ) : (

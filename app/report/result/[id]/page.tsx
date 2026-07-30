@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
+import { formatBeneficiaries } from "@/lib/consequence";
 import { LetterCard } from "@/components/LetterCard";
 import { Button } from "@/components/ui";
 
@@ -34,6 +35,7 @@ export default async function ReportResultPage({
 
   const isSuccess = challenge.status === "completed_success";
   const variant = isSuccess ? "gold" : "ember";
+  const beneficiaryNames = formatBeneficiaries(challenge.beneficiaries);
 
   return (
     <div className="flex-1 px-6 py-14">
@@ -50,17 +52,17 @@ export default async function ReportResultPage({
       >
         <p className="mb-4">
           {isSuccess
-            ? `${challenge.habit_title} — completed. ${challenge.recipient_name} was never called on for the consequence.`
-            : `${challenge.habit_title} didn't stick this time. The consequence was: ${challenge.consequence_description}, for ${challenge.recipient_name}.`}
+            ? `${challenge.habit_title} — completed. ${beneficiaryNames} never had to be treated.`
+            : `${challenge.habit_title} didn't stick this time. If you fail, you treat ${beneficiaryNames} to ${challenge.experience_description} — you just aren't there for it.`}
         </p>
         {challenge.status === "completed_failure_paid" && (
           <p className="mb-4 text-sm">
-            You followed through on the consequence — {challenge.recipient_name} gets the experience, and you don&rsquo;t.
+            You followed through — {beneficiaryNames} got the experience, and you weren&rsquo;t there.
           </p>
         )}
         {challenge.status === "completed_failure_unpaid" && (
           <p className="mb-4 text-sm">
-            The consequence hasn&rsquo;t been carried out yet. That&rsquo;s between you and {challenge.recipient_name}.
+            That treat hasn&rsquo;t happened yet. That&rsquo;s between you and {beneficiaryNames}.
           </p>
         )}
         {report?.what_happened && (

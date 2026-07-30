@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getHabitCategory, DIFFICULTY_RANGES } from "@/lib/habits";
-import type { HabitCategory } from "@/lib/types/database";
+import { parseBeneficiaries } from "@/lib/consequence";
+import type { ExperienceType, HabitCategory } from "@/lib/types/database";
 
 export interface CreateChallengeInput {
   category: HabitCategory;
@@ -11,8 +12,10 @@ export interface CreateChallengeInput {
   frequency: string;
   cueSituation: string;
   cueAction: string;
-  consequenceDescription: string;
-  recipientName: string;
+  beneficiaries: string;
+  experienceType: ExperienceType;
+  experienceDescription: string;
+  estimatedCostCents: number | null;
 }
 
 export async function createChallenge(input: CreateChallengeInput) {
@@ -40,8 +43,10 @@ export async function createChallenge(input: CreateChallengeInput) {
       duration_weeks_max: range.max,
       cue_situation: input.cueSituation.trim(),
       cue_action: input.cueAction.trim(),
-      consequence_description: input.consequenceDescription.trim(),
-      recipient_name: input.recipientName.trim(),
+      beneficiaries: parseBeneficiaries(input.beneficiaries),
+      experience_type: input.experienceType,
+      experience_description: input.experienceDescription.trim(),
+      estimated_cost_cents: input.estimatedCostCents,
     })
     .select()
     .single();
@@ -49,11 +54,6 @@ export async function createChallenge(input: CreateChallengeInput) {
   if (error || !challenge) {
     throw new Error(error?.message ?? "Could not create challenge");
   }
-
-  await supabase.from("recipients").insert({
-    challenge_id: challenge.id,
-    name: input.recipientName.trim(),
-  });
 
   redirect(`/onboarding/invite/${challenge.id}`);
 }

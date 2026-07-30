@@ -63,7 +63,7 @@ export default function LandingPage() {
               <HowItWorksCard
                 step="2"
                 title="Choose a consequence"
-                body="Name an experience you'd pay for on someone else's behalf — a trip, a class, a night out — for someone you care about. If you fail, they get it. You don't."
+                body="Pick people you care about and an experience that would actually sting to pay for — a trip, a nice dinner, a night out. If you fail, you'll treat them to it. You just won't be there."
               />
               <HowItWorksCard
                 step="3"
@@ -102,8 +102,8 @@ export default function LandingPage() {
           <div className="max-w-2xl mx-auto px-6 text-center">
             <h2 className="font-display text-3xl mb-4">Ready to put something on the line?</h2>
             <p className="text-ash mb-8">
-              It takes five minutes to set up. Your recipient never sees an
-              automatic email from us — you send the invitation yourself.
+              It takes five minutes to set up. The people you name never see
+              an automatic email from us — you send the invitation yourself.
             </p>
             <Link href="/sign-up">
               <Button className="px-8 py-3.5 text-base">Create your challenge</Button>
