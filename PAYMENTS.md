@@ -111,34 +111,66 @@ alone:
 - **Some catalog products only accept a fixed list of denominations, not a
   flexible range.** E.g. "Ving SE" only offers exactly `1000` or `1500` SEK
   (`skus: [{min:1000,max:1000},{min:1500,max:1500}]`), not a min-max range
-  like most other products. `lib/tremendous.ts` sends whatever the computed
-  per-beneficiary stake split is and doesn't validate it against the
-  product's actual SKU list first — an order for a fixed-denomination product
-  with a non-matching amount would fail at Tremendous and surface as the
-  existing generic `status: "failed"` path, with no indication in the admin
-  dashboard of *why*. Worth validating a product's SKU shape before setting
-  it as a `TREMENDOUS_PRODUCT_*` value for real use, or checking `GET
-  /products/{id}` before order creation.
+  like most other products.
+  **Fixed:** before ordering, `deliverGiftCards` now calls `GET
+  /products/{id}` once per challenge (all beneficiaries share the same
+  experience type/product) and `resolveDenomination` clamps into a flexible
+  product's range, or snaps to the nearest allowed value for a
+  fixed-denomination product (ties round down) — logged when it changes the
+  amount. This means the gift card's actual value can differ slightly from
+  the exact stake amount captured via Stripe; that drift is an accepted,
+  documented tradeoff for staying category-locked, not a bug. If the
+  product lookup itself fails (bad ID, API hiccup, no skus at all) and
+  `TREMENDOUS_PRODUCT_FALLBACK` is configured (a flexible `visa_card`
+  reward — confirmed one accepts a SEK-denominated order despite listing
+  only USD in its own `currency_codes`), the order falls back to that
+  instead of failing outright; that one reward just won't be
+  category-locked. Without a fallback configured, behavior is unchanged
+  from before: the raw amount is sent and Tremendous is the final arbiter.
 - **The claim link is only ever returned in the `POST /orders` response** —
   confirmed by fetching the same order/reward back afterward via both `GET
   /orders/{id}` and `GET /rewards/{id}`: neither includes a `link` field
   under `delivery`, even moments after a successful LINK-delivery order.
-  This means `lib/tremendous.ts` capturing `data.order.rewards[0].delivery
-  .link` immediately from the creation response and persisting it to
+  This means capturing `data.order.rewards[0].delivery.link` immediately
+  from the creation response and persisting it to
   `gift_card_deliveries.claim_url` in the same request is the *only* way to
   ever get that link — if that Supabase insert failed after Tremendous had
-  already executed the order (card charged, gift card created), there is
-  currently no way to recover the claim link via the API. That's a real gap:
-  worth either wrapping the insert with a retry, or treating "order created
-  but insert failed" as a page-someone-immediately condition rather than a
-  silently lost reward.
+  already executed the order (card charged, gift card created), there was
+  no way to recover the claim link via the API.
+  **Fixed, as far as is possible without a distributed transaction across
+  two separate systems:** the insert now happens immediately after parsing
+  the order response (nothing else runs in between) via
+  `insertDeliveryWithRetry`, which retries the write up to 3 times with a
+  short backoff. If every attempt still fails, it logs a `[tremendous:
+  CRITICAL]` line — distinct from the routine `[tremendous]` failure
+  path — containing the challenge id, beneficiary, order id, reward id, and
+  claim URL, so a human can still manually complete delivery from the
+  Tremendous dashboard using those IDs even though our own database has
+  nothing. This is console-log-based visibility only; there's no paging/
+  Slack/Sentry hook in this codebase, so a real production deployment
+  should wire that critical log into whatever alerting channel actually
+  gets watched — a log line nobody reads is not meaningfully better than
+  the silent loss it replaces.
 - The `recipient` object in responses always includes `email` and `phone`
   keys (defaulting to `""` when not supplied in the request), never omits
   them — doesn't change any behavior here, just don't expect `undefined`.
-- Rewards carry an `expires_at` (~1 year out in this sandbox), which
-  `gift_card_deliveries` doesn't currently store — there's no way today to
-  know from Kinwin's own data whether a delivered gift card has lapsed
-  unclaimed.
+- Rewards carry an `expires_at` (~1 year out in this sandbox).
+  **Fixed:** `gift_card_deliveries.expires_at` (migration `0004`) now stores
+  it, and `/share/[token]` shows "Claim by {date}" under the claim link so
+  the beneficiary knows there's a deadline. EMAIL-delivered rewards also get
+  an expiry recorded even though there's no link to show it next to on our
+  side — Tremendous's own email to the beneficiary presumably states it.
+  **Caveat found while verifying the fallback path:** the claim page itself
+  can state a *different*, shorter expiry than the order-level `expires_at`
+  we store — the "Virtual Visa" fallback product's claim page says "Expires
+  in 6 months, non-reloadable" even though its order response's
+  `expires_at` was the same ~1-year value as every other product. That
+  6-month figure appears to be the activated card's own post-redemption
+  validity window, not the claim deadline — a second, product-specific
+  expiry that isn't exposed anywhere in the order/reward API response and
+  that Kinwin has no way to know or surface. The "Claim by {date}" on the
+  share page is accurate for *claiming*; what happens to the card's balance
+  after that is between the beneficiary and Tremendous.
 - The funding source used (`method: "balance"`, EUR) doesn't need to match
   the reward's currency (SEK) — Tremendous converts automatically at order
   time (order `payment.currency_code: "EUR"`, reward `value.currency_code:

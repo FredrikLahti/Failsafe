@@ -82,6 +82,8 @@ export type GiftCardDeliveryRow = {
   tremendous_order_id: string | null;
   tremendous_reward_id: string | null;
   claim_url: string | null;
+  /** When the Tremendous reward expires (roughly a year out) — null for pre-migration rows and failed deliveries. */
+  expires_at: string | null;
   status: GiftCardDeliveryStatus;
   delivered_at: string | null;
   created_at: string;
@@ -91,6 +93,7 @@ export type GiftCardDeliveryShareRow = {
   challenge_id: string;
   beneficiary_name: string;
   claim_url: string | null;
+  expires_at: string | null;
 };
 
 export type ChallengeRow = {

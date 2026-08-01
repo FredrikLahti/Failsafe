@@ -97,15 +97,21 @@ export default async function SharePage({
           <p className="text-sm text-parchment/80 mb-3">Your gift card{deliveries!.length > 1 ? "s" : ""}:</p>
           <div className="flex flex-col gap-2 mb-6">
             {deliveries!.map((d, i) => (
-              <a
-                key={i}
-                href={d.claim_url ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="text-gold underline text-sm"
-              >
-                Claim {d.beneficiary_name}&rsquo;s gift card
-              </a>
+              <div key={i}>
+                <a
+                  href={d.claim_url ?? "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-gold underline text-sm"
+                >
+                  Claim {d.beneficiary_name}&rsquo;s gift card
+                </a>
+                {d.expires_at && (
+                  <p className="text-xs text-parchment/50 mt-0.5">
+                    Claim by {formatExpiryDate(d.expires_at)}
+                  </p>
+                )}
+              </div>
             ))}
           </div>
           {!share.photo_url && (
@@ -131,4 +137,12 @@ export default async function SharePage({
       </div>
     </div>
   );
+}
+
+function formatExpiryDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }

@@ -20,15 +20,16 @@ card — you just aren't there for it.
 ## Setup
 
 1. Create a Supabase project.
-2. Run the migrations in `supabase/migrations/` in order (0001, 0002, 0003)
-   in the Supabase SQL editor (or via `supabase db push`). Together they
-   create `profiles`, `challenges`, `checkins`, `final_reports`,
-   `subscriptions`, `stake_payments`, and `gift_card_deliveries`; the public
-   `challenge_shares` and `gift_card_delivery_shares` views used by the
-   no-login share page; the `challenge-photos` storage bucket (final report
-   self-photos and beneficiary Memory Lane photos); an optional
-   `challenges.beneficiary_email`; and a `handle_new_user` trigger update
-   that populates `profiles.display_name` from sign-up.
+2. Run the migrations in `supabase/migrations/` in order (0001-0004) in the
+   Supabase SQL editor (or via `supabase db push`). Together they create
+   `profiles`, `challenges`, `checkins`, `final_reports`, `subscriptions`,
+   `stake_payments`, and `gift_card_deliveries` (including the Tremendous
+   reward's `expires_at`); the public `challenge_shares` and
+   `gift_card_delivery_shares` views used by the no-login share page; the
+   `challenge-photos` storage bucket (final report self-photos and
+   beneficiary Memory Lane photos); an optional `challenges.beneficiary_email`;
+   and a `handle_new_user` trigger update that populates
+   `profiles.display_name` from sign-up.
 3. Copy `.env.local.example` to `.env.local` and fill in:
    - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Project
      Settings → API.
@@ -46,7 +47,9 @@ card — you just aren't there for it.
    - `TREMENDOUS_API_KEY` / `TREMENDOUS_FUNDING_SOURCE_ID` /
      `TREMENDOUS_PRODUCT_*` — gift card delivery on failure. Without these,
      failed challenges still capture the stake but gift card delivery
-     records itself as failed for admin follow-up.
+     records itself as failed for admin follow-up. `TREMENDOUS_PRODUCT_FALLBACK`
+     is optional — a flexible reward to fall back to if a category-locked
+     product ID can't be looked up in the catalog.
 4. `npm install`
 5. `npm run dev` and open http://localhost:3000
 
