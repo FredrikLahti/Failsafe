@@ -50,13 +50,12 @@ interface DeliverGiftCardsInput {
 
 /**
  * Creates one category-locked Tremendous reward per beneficiary and stores
- * the delivery record. Tremendous's recipient object requires an email
- * field regardless of delivery method (confirmed via their docs), but that
- * field is only actually used to send anything when delivery.method is
- * EMAIL — under LINK it's inert. So: use real EMAIL delivery when a
+ * the delivery record. Confirmed against Tremendous's own API spec:
+ * recipient.email is optional (only `name` is required) — it's just the
+ * field EMAIL delivery sends to. So: use real EMAIL delivery when a
  * beneficiary email was captured at onboarding (fully automatic, no share
- * page needed); otherwise fall back to LINK with a deterministic
- * placeholder address, surfacing the claim URL on the public share page
+ * page needed); otherwise use LINK delivery with no email at all,
+ * surfacing the claim URL (reward.delivery.link) on the public share page
  * instead — Failsafe doesn't require beneficiary contact info by design.
  */
 export async function deliverGiftCards({
@@ -103,12 +102,7 @@ export async function deliverGiftCards({
                 value: { denomination: centsToWholeUnits(amountCents), currency_code: "SEK" },
                 delivery: { method: hasRealEmail ? "EMAIL" : "LINK" },
                 products: [productId],
-                recipient: {
-                  name,
-                  email: hasRealEmail
-                    ? beneficiaryEmail!.trim()
-                    : `beneficiary+${challengeId}-${i}@noreply.failsafe.app`,
-                },
+                recipient: hasRealEmail ? { name, email: beneficiaryEmail!.trim() } : { name },
               },
             ],
           }),

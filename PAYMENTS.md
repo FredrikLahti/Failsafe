@@ -42,45 +42,51 @@ reusing a status value that used to be user-selectable and no longer is.
 ## Gift card delivery: LINK by default, EMAIL when we have an address
 
 Failsafe doesn't require a beneficiary's email or phone by design — the
-whole point is that the user sends the invite themselves. **Verified**:
-Tremendous's `recipient` object requires an `email` field regardless of
-delivery method, but that field is only actually *used* to send anything
-when `delivery.method` is `EMAIL` — under `LINK` it's inert (Tremendous
-generates a claim URL instead, which you deliver yourself). Direct fetches
-to `developers.tremendous.com` are blocked from this environment's network
-policy, but this was confirmed via general web search across their docs and
-third-party API references.
+whole point is that the user sends the invite themselves.
 
-Given that, `lib/tremendous.ts` now does both:
+**Verified directly against Tremendous's API Blueprint spec
+(`tremendous-rewards/api-docs`) and their openapi-generated Node client
+(`tremendous-rewards/tremendous-node`)** — `developers.tremendous.com`
+itself is blocked by this environment's egress policy, but their docs are
+also published as source on GitHub, which isn't:
 
-- **No beneficiary email on file** (the default): `delivery.method: "LINK"`
-  with a deterministic placeholder recipient email
-  (`beneficiary+<challengeId>-<n>@noreply.failsafe.app`, never used for
-  anything). The claim URL Tremendous returns is stored in
+- `recipient.email` is **optional** — only `recipient.name` is required.
+  Email only matters as the address `EMAIL` delivery sends to; under `LINK`
+  it isn't needed at all. (An earlier pass had this backwards — assumed
+  email was required unconditionally and sent a placeholder
+  `noreply@failsafe.app`-style address under LINK delivery for no reason.
+  Fixed: LINK requests now send `recipient: { name }` with no email.)
+- The request body's `rewards` array (not a singular `reward`) is the
+  current/preferred shape — confirmed in the spec, which documents `reward`
+  only as legacy backwards-compatibility.
+- The response's claim URL path — `order.rewards[].delivery.link` — is
+  confirmed against the Node client's generated types
+  (`CreateOrder200ResponseOrderRewardsInnerDelivery.link`), matching what
+  `lib/tremendous.ts` already parsed.
+- Sandbox base URL `https://testflight.tremendous.com/api/v2` and
+  production `https://www.tremendous.com/api/v2` are both confirmed.
+
+Given that, `lib/tremendous.ts` does:
+
+- **No beneficiary email on file** (the default): `delivery.method: "LINK"`,
+  `recipient: { name }` only. The claim URL Tremendous returns is stored in
   `gift_card_deliveries.claim_url` and surfaced on `/share/[token]`.
-- **Beneficiary email provided at onboarding** (new, optional field —
+- **Beneficiary email provided at onboarding** (optional field —
   `challenges.beneficiary_email`): `delivery.method: "EMAIL"` with that real
   address, so Tremendous sends the reward directly. Fully automatic, no
   reliance on the beneficiary visiting the share page.
 
-One simplification: the email field is a single optional contact for the
-whole challenge, not one per beneficiary (beneficiaries are often a
+One simplification stands: the email field is a single optional contact for
+the whole challenge, not one per beneficiary (beneficiaries are often a
 household — "Mom, Grandma and Aunt Clara" — sharing one inbox is a
 reasonable default). A true per-beneficiary contact list wasn't built; it'd
 need a small redesign of the beneficiaries input from a comma-separated
 string to a repeatable name+email list.
 
-The exact JSON shape of the `/orders` request (nesting, field names beyond
-`recipient.email`/`delivery.method`/`products`) is still a best-effort
-implementation, not confirmed field-by-field against a live sandbox account.
-Category-locking via the `products` array is a real, documented Tremendous
-feature; the actual product IDs are account/region-specific and left as env
-var placeholders.
-
-Category-locking uses Tremendous's `products` array on the reward (specific
-brand/product IDs, restricting choice away from their general-purpose
-flexible/Visa reward). The actual product IDs are account- and
-region-specific; `TREMENDOUS_PRODUCT_*` env vars are placeholders.
+Still not verified: `campaign_id` interaction with `products` (the spec
+shows both can be present; unclear which wins if they conflict), and this
+still hasn't been run against a live sandbox account — the fixes above are
+confirmed against the documented contract, not exercised end-to-end.
 
 ## ParityDeals and VPN detection are generic HTTP integrations, not SDKs
 
@@ -88,19 +94,18 @@ No specific VPN/proxy detection vendor was named. `lib/pricing.ts` calls a
 configurable endpoint (`VPN_DETECTION_API_URL`/`_API_KEY`) and fails *open*
 (treats the request as legitimate) when unconfigured — that's a deliberate
 tradeoff to avoid blocking pricing entirely in environments without this set
-up, not a security guarantee. Same caveat as Tremendous: the ParityDeals
-request shape in `fetchParityDealsPrice` is a best-effort guess at a
-plausible REST contract, not verified against their live API.
+up, not a security guarantee. Unlike Tremendous, ParityDeals doesn't publish
+an open-source spec/client to verify against the same way, so the request
+shape in `fetchParityDealsPrice` remains a best-effort guess, not verified.
 
-## Nothing here has been tested against a live Stripe/Tremendous/ParityDeals
-account
+## Still not tested against a live Stripe/Tremendous/ParityDeals account
 
 No credentials for any of these services were available in the environment
 this was built in. Everything is written to fail gracefully (skip the
-feature, mark a delivery/capture as failed) when unconfigured, but the
-happy-path request/response shapes for Tremendous and ParityDeals should be
-confirmed against their current docs before this goes anywhere near real
-money.
+feature, mark a delivery/capture as failed) when unconfigured. Tremendous's
+request/response shape is now verified against their published spec (above);
+Stripe's calls use the official SDK so its shape is trustworthy by
+construction; ParityDeals remains unverified.
 
 ## Display name
 
