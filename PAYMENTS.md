@@ -84,9 +84,79 @@ need a small redesign of the beneficiaries input from a comma-separated
 string to a repeatable name+email list.
 
 Still not verified: `campaign_id` interaction with `products` (the spec
-shows both can be present; unclear which wins if they conflict), and this
-still hasn't been run against a live sandbox account — the fixes above are
-confirmed against the documented contract, not exercised end-to-end.
+shows both can be present; unclear which wins if they conflict).
+
+## Verified against a live Tremendous sandbox account
+
+Ran both delivery paths end to end against a real test-mode Tremendous
+account (not just the documented spec): a failed challenge with
+`beneficiary_email` set (EMAIL delivery) and one without (LINK delivery),
+using real SEK-currency category-locked catalog products. Everything above
+about `recipient.email` optionality and the `rewards` array shape held up
+exactly as documented. New things learned that weren't obvious from the spec
+alone:
+
+- **"Category-locked" means picking a `category: "merchant_card"` catalog
+  product, never `category: "visa_card"`.** Tremendous's own `category` field
+  on a product isn't a semantic category like "restaurant" or "travel" — it's
+  the payment-instrument type. `merchant_card` = single-brand gift card
+  (`GET /products` returned entries like "Ticketmaster SE", "Ving SE",
+  "McDonalds SE" — exactly the category-locked, can't-redirect-to-arbitrary-
+  spending instruments this design needs); `visa_card` is their
+  general-purpose flexible reward, the thing this design explicitly avoids.
+  There's no separate "restaurant"/"travel"/"activity" taxonomy to query —
+  product names/catalogs have to be read and matched to Kinwin's experience
+  types by hand (or by keyword search), which is what was done to pick
+  `TREMENDOUS_PRODUCT_*` values for this test.
+- **Some catalog products only accept a fixed list of denominations, not a
+  flexible range.** E.g. "Ving SE" only offers exactly `1000` or `1500` SEK
+  (`skus: [{min:1000,max:1000},{min:1500,max:1500}]`), not a min-max range
+  like most other products. `lib/tremendous.ts` sends whatever the computed
+  per-beneficiary stake split is and doesn't validate it against the
+  product's actual SKU list first — an order for a fixed-denomination product
+  with a non-matching amount would fail at Tremendous and surface as the
+  existing generic `status: "failed"` path, with no indication in the admin
+  dashboard of *why*. Worth validating a product's SKU shape before setting
+  it as a `TREMENDOUS_PRODUCT_*` value for real use, or checking `GET
+  /products/{id}` before order creation.
+- **The claim link is only ever returned in the `POST /orders` response** —
+  confirmed by fetching the same order/reward back afterward via both `GET
+  /orders/{id}` and `GET /rewards/{id}`: neither includes a `link` field
+  under `delivery`, even moments after a successful LINK-delivery order.
+  This means `lib/tremendous.ts` capturing `data.order.rewards[0].delivery
+  .link` immediately from the creation response and persisting it to
+  `gift_card_deliveries.claim_url` in the same request is the *only* way to
+  ever get that link — if that Supabase insert failed after Tremendous had
+  already executed the order (card charged, gift card created), there is
+  currently no way to recover the claim link via the API. That's a real gap:
+  worth either wrapping the insert with a retry, or treating "order created
+  but insert failed" as a page-someone-immediately condition rather than a
+  silently lost reward.
+- The `recipient` object in responses always includes `email` and `phone`
+  keys (defaulting to `""` when not supplied in the request), never omits
+  them — doesn't change any behavior here, just don't expect `undefined`.
+- Rewards carry an `expires_at` (~1 year out in this sandbox), which
+  `gift_card_deliveries` doesn't currently store — there's no way today to
+  know from Kinwin's own data whether a delivered gift card has lapsed
+  unclaimed.
+- The funding source used (`method: "balance"`, EUR) doesn't need to match
+  the reward's currency (SEK) — Tremendous converts automatically at order
+  time (order `payment.currency_code: "EUR"`, reward `value.currency_code:
+  "SEK"`, real exchange rate applied even in sandbox; `fees: 0` in this
+  account, which may not hold on every funding source/plan).
+- The resulting claim URL (`https://reward.testflight.tremendous.com/...`) is
+  a real, fully rendered Tremendous-hosted page: correct denomination,
+  currency, and exact product name ("Global Experience Card SE gift card"),
+  real terms of service referencing the actual underlying card issuer, and a
+  redemption form that asks the beneficiary for their email at claim time —
+  confirming the design intent that Kinwin itself never needs to collect
+  beneficiary contact info for LINK delivery; Tremendous collects it, if at
+  all, only at the point the beneficiary actually redeems. (Not actually
+  redeemed during this test, to avoid consuming the sandbox reward or
+  emailing a real address for no reason — page contents and linkage were
+  enough to confirm it's genuine.)
+- The public `/share/[token]` page correctly surfaces the exact same claim
+  URL Tremendous returned, unmodified.
 
 ## ParityDeals and VPN detection are generic HTTP integrations, not SDKs
 
@@ -119,14 +189,18 @@ the server log, that's real: something (usually a schema mismatch) is
 preventing state from being recorded, even though Stripe itself may have
 succeeded.
 
-## Still not tested against a live Stripe/Tremendous/ParityDeals account
+## Still not tested against a live ParityDeals account
 
-No credentials for any of these services were available in the environment
-this was built in. Everything is written to fail gracefully (skip the
-feature, mark a delivery/capture as failed) when unconfigured. Tremendous's
-request/response shape is now verified against their published spec (above);
-Stripe's calls use the official SDK so its shape is trustworthy by
-construction; ParityDeals remains unverified.
+Stripe (subscription checkout, off-session stake capture, webhooks) and
+Tremendous (EMAIL and LINK gift-card delivery) have both now been exercised
+against real test-mode accounts — see above. ParityDeals is the one
+remaining unverified integration: no credentials for it have been available
+in any environment this was built/tested in, so `fetchParityDealsPrice`'s
+request/response shape is still a best-effort guess. It's currently
+unreachable anyway since PPP pricing is disabled behind `PPP_PRICING_ENABLED`
+in `lib/pricing.ts` (flat price for everyone until ParityDeals is configured
+and verified — see that file). Everything is written to fail gracefully
+(fall back to the flat price) when ParityDeals is unconfigured or wrong.
 
 ## AI agents and Stripe Checkout: test mode only, never delegated end to end
 
