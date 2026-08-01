@@ -111,8 +111,9 @@ export default async function SharePage({
           {!share.photo_url && (
             <>
               <p className="text-parchment/70 mb-4 text-sm">
-                Please immortalize this — take lots of photos, and upload one
-                through this link for their Memory Lane.
+                Please immortalize this
+                {share.owner_display_name ? ` for ${share.owner_display_name}` : ""}, take lots
+                of photos, and upload one through this link for their Memory Lane.
               </p>
               <BeneficiaryPhotoUpload shareToken={token} />
             </>

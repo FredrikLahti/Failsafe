@@ -9,6 +9,7 @@ import { AuthShell } from "@/components/AuthShell";
 
 export default function SignUpPage() {
   const router = useRouter();
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ export default function SignUpPage() {
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: { display_name: displayName.trim() },
       },
     });
 
@@ -61,6 +63,17 @@ export default function SignUpPage() {
   return (
     <AuthShell title="Create your account">
       <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <Label htmlFor="display-name">Your name</Label>
+          <Input
+            id="display-name"
+            required
+            autoComplete="name"
+            placeholder="How your beneficiaries know you"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+          />
+        </div>
         <div>
           <Label htmlFor="email">Email</Label>
           <Input

@@ -24,7 +24,7 @@ export async function submitFinalReport(formData: FormData) {
 
   const { data: challenge } = await supabase
     .from("challenges")
-    .select("beneficiaries, experience_type")
+    .select("beneficiaries, experience_type, beneficiary_email")
     .eq("id", challengeId)
     .eq("user_id", user.id)
     .single();
@@ -80,6 +80,7 @@ export async function submitFinalReport(formData: FormData) {
     await captureStake(challengeId, {
       beneficiaries: challenge.beneficiaries,
       experienceType: challenge.experience_type,
+      beneficiaryEmail: challenge.beneficiary_email,
     });
   }
 

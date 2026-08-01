@@ -105,6 +105,8 @@ export type ChallengeRow = {
   cue_situation: string;
   cue_action: string;
   beneficiaries: string[];
+  /** Optional shared contact — when set, gift-card delivery uses Tremendous EMAIL instead of LINK. */
+  beneficiary_email: string | null;
   experience_type: ExperienceType;
   experience_description: string;
   /** The real stake: saved as a payment method at creation, captured only if the challenge fails. */
@@ -155,6 +157,7 @@ export type ChallengeShareRow = {
   outcome: ReportOutcome | null;
   photo_url: string | null;
   photo_type: PhotoType | null;
+  owner_display_name: string | null;
 };
 
 export type Database = {

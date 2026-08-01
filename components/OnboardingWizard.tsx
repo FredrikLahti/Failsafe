@@ -26,6 +26,7 @@ export function OnboardingWizard() {
   const [cueSituation, setCueSituation] = useState("");
   const [cueAction, setCueAction] = useState("");
   const [beneficiaries, setBeneficiaries] = useState("");
+  const [beneficiaryEmail, setBeneficiaryEmail] = useState("");
   const [experienceType, setExperienceType] = useState<ExperienceType>("dinner");
   const [experienceDescription, setExperienceDescription] = useState("");
   const [stakeAmount, setStakeAmount] = useState("");
@@ -63,6 +64,7 @@ export function OnboardingWizard() {
         cueSituation,
         cueAction,
         beneficiaries,
+        beneficiaryEmail,
         experienceType,
         experienceDescription,
         stakeAmountCents: Math.round(kronor * 100),
@@ -177,6 +179,21 @@ export function OnboardingWizard() {
                   onChange={(e) => setBeneficiaries(e.target.value)}
                 />
                 <p className="mt-1.5 text-xs text-ash">Separate names with commas.</p>
+              </div>
+
+              <div>
+                <Label htmlFor="beneficiary-email">Their email (optional)</Label>
+                <Input
+                  id="beneficiary-email"
+                  type="email"
+                  placeholder="mom@example.com"
+                  value={beneficiaryEmail}
+                  onChange={(e) => setBeneficiaryEmail(e.target.value)}
+                />
+                <p className="mt-1.5 text-xs text-ash">
+                  Only used to email the gift card directly if you fail. Leave it blank and
+                  we&rsquo;ll put a claim link on the page you already send them.
+                </p>
               </div>
 
               <div>

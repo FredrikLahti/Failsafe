@@ -88,7 +88,7 @@ export async function releaseStake(challengeId: string): Promise<void> {
  */
 export async function captureStake(
   challengeId: string,
-  input: { beneficiaries: string[]; experienceType: ExperienceType }
+  input: { beneficiaries: string[]; experienceType: ExperienceType; beneficiaryEmail?: string | null }
 ): Promise<void> {
   const supabase = createServiceRoleClient();
 
@@ -146,6 +146,7 @@ export async function captureStake(
       beneficiaries: input.beneficiaries,
       experienceType: input.experienceType,
       totalAmountCents: stake.amount_cents,
+      beneficiaryEmail: input.beneficiaryEmail,
     });
   } catch {
     await supabase

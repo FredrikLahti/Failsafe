@@ -20,14 +20,15 @@ card — you just aren't there for it.
 ## Setup
 
 1. Create a Supabase project.
-2. Run `supabase/migrations/0001_init.sql` then
-   `supabase/migrations/0002_payments_memory_lane.sql` in the Supabase SQL
-   editor (or via `supabase db push`). Together they create `profiles`,
-   `challenges`, `checkins`, `final_reports`, `subscriptions`,
-   `stake_payments`, and `gift_card_deliveries`; the public
+2. Run the migrations in `supabase/migrations/` in order (0001, 0002, 0003)
+   in the Supabase SQL editor (or via `supabase db push`). Together they
+   create `profiles`, `challenges`, `checkins`, `final_reports`,
+   `subscriptions`, `stake_payments`, and `gift_card_deliveries`; the public
    `challenge_shares` and `gift_card_delivery_shares` views used by the
-   no-login share page; and the `challenge-photos` storage bucket (final
-   report self-photos and beneficiary Memory Lane photos).
+   no-login share page; the `challenge-photos` storage bucket (final report
+   self-photos and beneficiary Memory Lane photos); an optional
+   `challenges.beneficiary_email`; and a `handle_new_user` trigger update
+   that populates `profiles.display_name` from sign-up.
 3. Copy `.env.local.example` to `.env.local` and fill in:
    - `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Project
      Settings → API.

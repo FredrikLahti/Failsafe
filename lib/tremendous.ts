@@ -44,26 +44,27 @@ interface DeliverGiftCardsInput {
   beneficiaries: string[];
   experienceType: ExperienceType;
   totalAmountCents: number;
+  /** Optional shared contact captured at onboarding — see reserveStake/challenges.beneficiary_email. */
+  beneficiaryEmail?: string | null;
 }
 
 /**
  * Creates one category-locked Tremendous reward per beneficiary and stores
- * the delivery record. Uses LINK delivery (a claim URL Tremendous returns
- * directly) rather than emailing the beneficiary, because Failsafe never
- * collects beneficiary contact info by design (the user sends invites
- * themselves) — the claim link is instead surfaced on the public share
- * page the beneficiary already visits. Tremendous's reward schema still
- * requires a recipient email at order-creation time in every version of
- * their docs available at the time this was written; a deterministic
- * no-reply placeholder is sent purely to satisfy that field — verify this
- * against Tremendous's current API before relying on it, since it wasn't
- * reachable to confirm from this environment.
+ * the delivery record. Tremendous's recipient object requires an email
+ * field regardless of delivery method (confirmed via their docs), but that
+ * field is only actually used to send anything when delivery.method is
+ * EMAIL — under LINK it's inert. So: use real EMAIL delivery when a
+ * beneficiary email was captured at onboarding (fully automatic, no share
+ * page needed); otherwise fall back to LINK with a deterministic
+ * placeholder address, surfacing the claim URL on the public share page
+ * instead — Failsafe doesn't require beneficiary contact info by design.
  */
 export async function deliverGiftCards({
   challengeId,
   beneficiaries,
   experienceType,
   totalAmountCents,
+  beneficiaryEmail,
 }: DeliverGiftCardsInput): Promise<void> {
   const supabase = createServiceRoleClient();
   const productId = process.env[CATEGORY_PRODUCT_ENV[experienceType]];
@@ -83,6 +84,8 @@ export async function deliverGiftCards({
 
   const amounts = splitEvenly(totalAmountCents, beneficiaries.length);
 
+  const hasRealEmail = Boolean(beneficiaryEmail?.trim());
+
   await Promise.all(
     beneficiaries.map(async (name, i) => {
       const amountCents = amounts[i];
@@ -98,11 +101,13 @@ export async function deliverGiftCards({
             rewards: [
               {
                 value: { denomination: centsToWholeUnits(amountCents), currency_code: "SEK" },
-                delivery: { method: "LINK" },
+                delivery: { method: hasRealEmail ? "EMAIL" : "LINK" },
                 products: [productId],
                 recipient: {
                   name,
-                  email: `beneficiary+${challengeId}-${i}@noreply.failsafe.app`,
+                  email: hasRealEmail
+                    ? beneficiaryEmail!.trim()
+                    : `beneficiary+${challengeId}-${i}@noreply.failsafe.app`,
                 },
               },
             ],

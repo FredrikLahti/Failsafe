@@ -39,21 +39,43 @@ as `Failed (capture declined)`. `challenges.status` gets flipped to the
 pre-existing `completed_failure_unpaid` value for that admin visibility,
 reusing a status value that used to be user-selectable and no longer is.
 
-## Gift card delivery has no recipient contact info by design
+## Gift card delivery: LINK by default, EMAIL when we have an address
 
-Failsafe never collects a beneficiary's email or phone — the whole point is
-that the user sends the invite themselves. Tremendous's Orders API is built
-around a `recipient` object; every version of their docs referenced during
-this implementation required an email on that object even when using `LINK`
-delivery (a reward that produces a claim URL instead of an emailed reward).
-**This wasn't verified against Tremendous's live API** — network access in
-the environment this was built in couldn't reach `developers.tremendous.com`.
-The current code sends a deterministic, never-checked placeholder address
-(`beneficiary+<challengeId>-<n>@noreply.failsafe.app`) purely to satisfy that
-field, and relies entirely on the `LINK` claim URL — stored in
-`gift_card_deliveries.claim_url` and surfaced on `/share/[token]` — for
-actual delivery. Confirm this against current Tremendous docs (or their
-support) before processing real money through it.
+Failsafe doesn't require a beneficiary's email or phone by design — the
+whole point is that the user sends the invite themselves. **Verified**:
+Tremendous's `recipient` object requires an `email` field regardless of
+delivery method, but that field is only actually *used* to send anything
+when `delivery.method` is `EMAIL` — under `LINK` it's inert (Tremendous
+generates a claim URL instead, which you deliver yourself). Direct fetches
+to `developers.tremendous.com` are blocked from this environment's network
+policy, but this was confirmed via general web search across their docs and
+third-party API references.
+
+Given that, `lib/tremendous.ts` now does both:
+
+- **No beneficiary email on file** (the default): `delivery.method: "LINK"`
+  with a deterministic placeholder recipient email
+  (`beneficiary+<challengeId>-<n>@noreply.failsafe.app`, never used for
+  anything). The claim URL Tremendous returns is stored in
+  `gift_card_deliveries.claim_url` and surfaced on `/share/[token]`.
+- **Beneficiary email provided at onboarding** (new, optional field —
+  `challenges.beneficiary_email`): `delivery.method: "EMAIL"` with that real
+  address, so Tremendous sends the reward directly. Fully automatic, no
+  reliance on the beneficiary visiting the share page.
+
+One simplification: the email field is a single optional contact for the
+whole challenge, not one per beneficiary (beneficiaries are often a
+household — "Mom, Grandma and Aunt Clara" — sharing one inbox is a
+reasonable default). A true per-beneficiary contact list wasn't built; it'd
+need a small redesign of the beneficiaries input from a comma-separated
+string to a repeatable name+email list.
+
+The exact JSON shape of the `/orders` request (nesting, field names beyond
+`recipient.email`/`delivery.method`/`products`) is still a best-effort
+implementation, not confirmed field-by-field against a live sandbox account.
+Category-locking via the `products` array is a real, documented Tremendous
+feature; the actual product IDs are account/region-specific and left as env
+var placeholders.
 
 Category-locking uses Tremendous's `products` array on the reward (specific
 brand/product IDs, restricting choice away from their general-purpose
@@ -79,3 +101,13 @@ feature, mark a delivery/capture as failed) when unconfigured, but the
 happy-path request/response shapes for Tremendous and ParityDeals should be
 confirmed against their current docs before this goes anywhere near real
 money.
+
+## Display name
+
+`profiles.display_name` is now populated at sign-up (a required "Your name"
+field, passed through as Supabase auth user metadata and picked up by the
+`handle_new_user` trigger). It's used only to personalize the beneficiary
+Memory Lane prompt on `/share/[token]` ("Please immortalize this for
+{name}..."); accounts created before this change will have `display_name =
+null` and the message just drops the "for {name}" clause rather than
+showing a placeholder.
