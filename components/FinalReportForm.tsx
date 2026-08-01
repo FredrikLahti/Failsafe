@@ -5,28 +5,33 @@ import { Button, ErrorText, Label, Textarea } from "@/components/ui";
 import { submitFinalReport } from "@/app/report/actions";
 import type { ReportOutcome } from "@/lib/types/database";
 
-const OUTCOMES: { value: ReportOutcome; label: string; hint: string }[] = [
-  {
-    value: "completed",
-    label: "I completed the full challenge",
-    hint: "You kept the habit for the whole commitment.",
-  },
-  {
-    value: "failed_paid",
-    label: "I failed, and I carried out the consequence",
-    hint: "You didn't keep the habit, but you paid for the experience as promised.",
-  },
-  {
-    value: "failed_unpaid",
-    label: "I failed, and I did not carry out the consequence",
-    hint: "You didn't keep the habit and haven't paid for the experience.",
-  },
-];
+type SelectableOutcome = Extract<ReportOutcome, "completed" | "failed_paid">;
 
-export function FinalReportForm({ challengeId }: { challengeId: string }) {
-  const [outcome, setOutcome] = useState<ReportOutcome | null>(null);
+export function FinalReportForm({
+  challengeId,
+  habitTitle,
+  beneficiaryNames,
+}: {
+  challengeId: string;
+  habitTitle: string;
+  beneficiaryNames: string;
+}) {
+  const [outcome, setOutcome] = useState<SelectableOutcome | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const outcomes: { value: SelectableOutcome; label: string; hint: string }[] = [
+    {
+      value: "completed",
+      label: "I completed the full challenge",
+      hint: `${habitTitle} stuck. ${beneficiaryNames} never had to be treated. Nicely done, and a little rude of you, they were looking forward to it.`,
+    },
+    {
+      value: "failed_paid",
+      label: "I failed, and the consequence went through",
+      hint: `${habitTitle} didn't stick, but you took the consequence like a champ. That wallet does look a bit thin now.`,
+    },
+  ];
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -50,7 +55,7 @@ export function FinalReportForm({ challengeId }: { challengeId: string }) {
 
       <Label>What actually happened?</Label>
       <div className="space-y-3 mb-6">
-        {OUTCOMES.map((opt) => (
+        {outcomes.map((opt) => (
           <label
             key={opt.value}
             className={`block rounded-md border px-4 py-3 cursor-pointer transition-colors ${
@@ -72,30 +77,30 @@ export function FinalReportForm({ challengeId }: { challengeId: string }) {
         ))}
       </div>
 
-      <div className="mb-6">
-        <Label htmlFor="photo">Photo (optional)</Label>
-        <input
-          id="photo"
-          name="photo"
-          type="file"
-          accept="image/*"
-          className="block w-full text-sm text-parchment/80 file:mr-4 file:rounded-md file:border-0 file:bg-sage file:px-4 file:py-2 file:text-ink file:text-sm"
-        />
-      </div>
+      {outcome === "completed" && (
+        <div className="mb-6">
+          <Label htmlFor="photo">
+            Almost there. Take a photo to remember this by, you&rsquo;ll want it for your Memory Lane.
+          </Label>
+          <input
+            id="photo"
+            name="photo"
+            type="file"
+            accept="image/*"
+            className="block w-full text-sm text-parchment/80 file:mr-4 file:rounded-md file:border-0 file:bg-sage file:px-4 file:py-2 file:text-ink file:text-sm"
+          />
+        </div>
+      )}
+
+      {outcome === "failed_paid" && (
+        <p className="mb-6 text-xs text-ash">
+          We&rsquo;ll ask {beneficiaryNames} for a photo once the gift card lands, it&rsquo;ll show up in your Memory Lane.
+        </p>
+      )}
 
       <div className="mb-6">
         <Label htmlFor="whatHappened">What happened, in your own words</Label>
         <Textarea id="whatHappened" name="whatHappened" rows={4} />
-      </div>
-
-      <div className="mb-6">
-        <Label>Would a binding payment solution (charged automatically) have made a difference?</Label>
-        <YesNo name="wouldBindingPaymentHelp" />
-      </div>
-
-      <div className="mb-8">
-        <Label>Would you pay for an automated version of Failsafe that enforced this for you?</Label>
-        <YesNo name="wouldPayForAutomated" />
       </div>
 
       <ErrorText>{error}</ErrorText>
@@ -104,21 +109,5 @@ export function FinalReportForm({ challengeId }: { challengeId: string }) {
         {submitting ? "Submitting…" : "Submit final report"}
       </Button>
     </form>
-  );
-}
-
-function YesNo({ name }: { name: string }) {
-  return (
-    <div className="flex gap-3 mt-2">
-      {["yes", "no"].map((v) => (
-        <label
-          key={v}
-          className="flex-1 text-center rounded-md border border-sage/40 py-2 cursor-pointer has-[:checked]:border-gold has-[:checked]:bg-gold/10 capitalize"
-        >
-          <input type="radio" name={name} value={v} className="sr-only" required />
-          {v}
-        </label>
-      ))}
-    </div>
   );
 }

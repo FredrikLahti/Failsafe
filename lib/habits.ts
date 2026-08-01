@@ -8,6 +8,8 @@ export interface HabitCategoryDefinition {
   starterHabit: string;
   suggestedFrequency: string;
   exampleCue: string;
+  /** Short noun phrase used in generated Memory Lane titles, e.g. "meditating". */
+  memoryLanePhrase: string;
 }
 
 export const DIFFICULTY_RANGES: Record<
@@ -28,6 +30,7 @@ export const HABIT_CATEGORIES: HabitCategoryDefinition[] = [
     starterHabit: "Sit quietly and breathe for 3 minutes",
     suggestedFrequency: "5 times per week",
     exampleCue: "If I've just poured my morning coffee, then I sit for 3 minutes before drinking it",
+    memoryLanePhrase: "meditating",
   },
   {
     id: "screen_time",
@@ -37,6 +40,7 @@ export const HABIT_CATEGORIES: HabitCategoryDefinition[] = [
     starterHabit: "One hour with your phone in another room",
     suggestedFrequency: "5 times per week",
     exampleCue: "If it's 8pm, then I put my phone in the kitchen for an hour",
+    memoryLanePhrase: "cutting screen time",
   },
   {
     id: "sleep",
@@ -46,6 +50,7 @@ export const HABIT_CATEGORIES: HabitCategoryDefinition[] = [
     starterHabit: "Lights out within 30 minutes of a fixed bedtime",
     suggestedFrequency: "6 nights per week",
     exampleCue: "If it's 10:30pm, then I turn off every screen and get into bed",
+    memoryLanePhrase: "sleeping better",
   },
   {
     id: "saving",
@@ -55,15 +60,17 @@ export const HABIT_CATEGORIES: HabitCategoryDefinition[] = [
     starterHabit: "Move a fixed small amount into savings",
     suggestedFrequency: "Once per week",
     exampleCue: "If it's Sunday evening, then I transfer this week's saving before I close my laptop",
+    memoryLanePhrase: "saving",
   },
   {
     id: "diet",
     label: "Diet / cooking at home",
-    tagline: "Fewer takeout nights, more meals you made yourself.",
+    tagline: "Eating well without overthinking it.",
     difficulty: "complex",
     starterHabit: "Cook one simple meal at home instead of ordering in",
     suggestedFrequency: "3 times per week",
     exampleCue: "If it's a weeknight and I haven't planned takeout, then I cook something simple at home",
+    memoryLanePhrase: "cooking at home",
   },
   {
     id: "exercise",
@@ -73,6 +80,7 @@ export const HABIT_CATEGORIES: HabitCategoryDefinition[] = [
     starterHabit: "A 15-minute walk or light workout",
     suggestedFrequency: "3 times per week",
     exampleCue: "If I've just finished lunch, then I take a 15-minute walk",
+    memoryLanePhrase: "exercising",
   },
 ];
 
@@ -88,5 +96,16 @@ export function getHabitCategory(id: HabitCategory): HabitCategoryDefinition {
  */
 export function expectationCopy(tier: DifficultyTier): string {
   const { min, max } = DIFFICULTY_RANGES[tier];
-  return `Most people building this kind of habit see a real shift within about ${min}-${max} weeks. It's completely normal for it to take time.`;
+  return `Most people building this kind of habit see a real shift within about ${min}-${max} weeks. There are no quick fixes, it's completely normal for it to take time.`;
+}
+
+/** Generated Memory Lane card title, e.g. "When I crushed 18 weeks of exercising". */
+export function memoryLaneTitle(
+  category: HabitCategoryDefinition,
+  weeks: number,
+  isSuccess: boolean
+): string {
+  return isSuccess
+    ? `When I crushed ${weeks} weeks of ${category.memoryLanePhrase}`
+    : `When I failed to keep up ${category.memoryLanePhrase} for ${weeks} weeks`;
 }

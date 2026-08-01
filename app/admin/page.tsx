@@ -5,7 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getHabitCategory } from "@/lib/habits";
 import { computeStreak, currentWeekNumber, fillMissedWeeks } from "@/lib/streak";
 import { experienceTypeLabel, formatBeneficiaries } from "@/lib/consequence";
-import type { ChallengeRow, CheckinStatus } from "@/lib/types/database";
+import type { ChallengeRow, CheckinStatus, StakePaymentStatus } from "@/lib/types/database";
 
 interface CheckinLite {
   challenge_id: string;
@@ -17,11 +17,26 @@ interface ChallengeWithProfile extends ChallengeRow {
   profiles: { email: string } | null;
 }
 
+interface StakeLite {
+  challenge_id: string;
+  status: StakePaymentStatus;
+}
+
 const STATUS_LABEL: Record<string, string> = {
   active: "Active",
   completed_success: "Completed",
   completed_failure_paid: "Failed (paid)",
-  completed_failure_unpaid: "Failed (unpaid)",
+  // Only reached via an admin-visible capture failure (e.g. card decline) —
+  // not a user-selectable final-report outcome anymore.
+  completed_failure_unpaid: "Failed (capture declined)",
+};
+
+const STAKE_STATUS_LABEL: Record<StakePaymentStatus, string> = {
+  pending_card: "No card yet",
+  reserved: "Reserved",
+  released: "Released",
+  captured: "Captured",
+  capture_failed: "Capture failed",
 };
 
 export default async function AdminPage() {
@@ -46,6 +61,16 @@ export default async function AdminPage() {
     const list = checkinsByChallenge.get(checkin.challenge_id) ?? [];
     list.push(checkin);
     checkinsByChallenge.set(checkin.challenge_id, list);
+  }
+
+  const { data: allStakes } = await supabase
+    .from("stake_payments")
+    .select("challenge_id, status")
+    .returns<StakeLite[]>();
+
+  const stakeByChallenge = new Map<string, StakePaymentStatus>();
+  for (const stake of allStakes ?? []) {
+    stakeByChallenge.set(stake.challenge_id, stake.status);
   }
 
   return (
@@ -76,6 +101,7 @@ export default async function AdminPage() {
                 <th className="py-2 pr-4">Beneficiaries</th>
                 <th className="py-2 pr-4">Experience</th>
                 <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Stake</th>
                 <th className="py-2 pr-4">Progress</th>
                 <th className="py-2 pr-4">Streak</th>
                 <th className="py-2 pr-4">Started</th>
@@ -97,11 +123,16 @@ export default async function AdminPage() {
                     <td className="py-2 pr-4">{formatBeneficiaries(c.beneficiaries)}</td>
                     <td className="py-2 pr-4">
                       {experienceTypeLabel(c.experience_type)}
-                      {c.estimated_cost_cents != null && (
-                        <span className="text-ash"> (~${(c.estimated_cost_cents / 100).toFixed(0)})</span>
+                      {c.stake_amount_cents != null && (
+                        <span className="text-ash"> (~{(c.stake_amount_cents / 100).toFixed(0)} SEK)</span>
                       )}
                     </td>
                     <td className="py-2 pr-4">{STATUS_LABEL[c.status] ?? c.status}</td>
+                    <td className="py-2 pr-4">
+                      {stakeByChallenge.has(c.id)
+                        ? STAKE_STATUS_LABEL[stakeByChallenge.get(c.id)!]
+                        : "—"}
+                    </td>
                     <td className="py-2 pr-4 font-mono">
                       {c.status === "active"
                         ? `wk ${week} of ${c.duration_weeks_min}-${c.duration_weeks_max}`

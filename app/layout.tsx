@@ -22,9 +22,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Failsafe — Even if you fail, your loved ones win.",
+  title: "Failsafe: When you fail, your loved ones win.",
   description:
-    "Build a habit. Choose a consequence: an experience you pay for on behalf of someone you care about if you fail. Failsafe keeps you honest.",
+    "Build a habit. Fail, and you're funding a night out for someone you love, one you're banned from attending.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

@@ -2,12 +2,12 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { ChallengeStatus, ReportOutcome } from "@/lib/types/database";
+import { releaseStake, captureStake } from "@/lib/payments/stake";
+import type { ChallengeStatus, SelectableReportOutcome } from "@/lib/types/database";
 
-const STATUS_BY_OUTCOME: Record<ReportOutcome, ChallengeStatus> = {
+const STATUS_BY_OUTCOME: Record<SelectableReportOutcome, ChallengeStatus> = {
   completed: "completed_success",
   failed_paid: "completed_failure_paid",
-  failed_unpaid: "completed_failure_unpaid",
 };
 
 export async function submitFinalReport(formData: FormData) {
@@ -18,15 +18,26 @@ export async function submitFinalReport(formData: FormData) {
   if (!user) redirect("/sign-in");
 
   const challengeId = String(formData.get("challengeId"));
-  const outcome = String(formData.get("outcome")) as ReportOutcome;
+  const outcome = String(formData.get("outcome")) as SelectableReportOutcome;
   const whatHappened = String(formData.get("whatHappened") || "");
-  const wouldBindingPaymentHelp = formData.get("wouldBindingPaymentHelp") === "yes";
-  const wouldPayForAutomated = formData.get("wouldPayForAutomated") === "yes";
   const photo = formData.get("photo");
+
+  const { data: challenge } = await supabase
+    .from("challenges")
+    .select("beneficiaries, experience_type")
+    .eq("id", challengeId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!challenge) {
+    throw new Error("Challenge not found");
+  }
 
   let photoUrl: string | null = null;
 
-  if (photo instanceof File && photo.size > 0) {
+  // Self-photos are only collected on success — a failure's Memory Lane
+  // photo comes from the beneficiary after the gift card is delivered.
+  if (outcome === "completed" && photo instanceof File && photo.size > 0) {
     const path = `${user.id}/${challengeId}-${Date.now()}-${photo.name}`;
     const { error: uploadError } = await supabase.storage
       .from("challenge-photos")
@@ -42,9 +53,8 @@ export async function submitFinalReport(formData: FormData) {
     challenge_id: challengeId,
     outcome,
     photo_url: photoUrl,
+    photo_type: photoUrl ? "self" : null,
     what_happened: whatHappened.trim() || null,
-    would_binding_payment_help: wouldBindingPaymentHelp,
-    would_pay_for_automated: wouldPayForAutomated,
   });
 
   if (reportError) {
@@ -62,6 +72,15 @@ export async function submitFinalReport(formData: FormData) {
 
   if (updateError) {
     throw new Error(updateError.message);
+  }
+
+  if (outcome === "completed") {
+    await releaseStake(challengeId);
+  } else {
+    await captureStake(challengeId, {
+      beneficiaries: challenge.beneficiaries,
+      experienceType: challenge.experience_type,
+    });
   }
 
   redirect(`/report/result/${challengeId}`);

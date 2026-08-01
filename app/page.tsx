@@ -1,9 +1,16 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Button } from "@/components/ui";
 import { WaxSeal } from "@/components/WaxSeal";
 import { HABIT_CATEGORIES } from "@/lib/habits";
+import { resolveLocalizedPrice } from "@/lib/pricing";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const hdrs = await headers();
+  const countryCode = hdrs.get("x-vercel-ip-country");
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const price = await resolveLocalizedPrice(countryCode, ip);
+
   return (
     <div className="flex-1 flex flex-col">
       <header className="max-w-5xl w-full mx-auto px-6 py-6 flex items-center justify-between">
@@ -32,10 +39,10 @@ export default function LandingPage() {
             your loved ones win.
           </h1>
           <p className="text-lg text-parchment/80 max-w-xl mx-auto mb-10">
-            Build a habit. Choose a consequence: an experience you pay for on
-            behalf of someone you care about if you fail — one you don&rsquo;t
-            get to attend yourself. It turns good intentions into a promise
-            with real weight behind it.
+            Build a habit. Fail, and you&rsquo;re funding a night out for
+            someone you love, one you&rsquo;re banned from attending. Succeed,
+            and you don&rsquo;t just save the money, you&rsquo;ve actually
+            improved yourself.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/sign-up">
@@ -63,7 +70,7 @@ export default function LandingPage() {
               <HowItWorksCard
                 step="2"
                 title="Choose a consequence"
-                body="Pick people you care about and an experience that would actually sting to pay for — a trip, a nice dinner, a night out. If you fail, you'll treat them to it. You just won't be there."
+                body="Pick people you care about and an experience that would actually sting to pay for: a trip, a nice dinner, a night out. If you fail, you treat them to it. You're just not allowed to be there."
               />
               <HowItWorksCard
                 step="3"
@@ -71,10 +78,6 @@ export default function LandingPage() {
                 body="A short weekly check-in keeps you honest. Reminders ease off automatically as your streak holds."
               />
             </div>
-            <p className="text-center text-sm text-ash mt-14 max-w-md mx-auto">
-              There&rsquo;s no paid reward in this version — no prize for
-              success beyond the habit itself. The stake is the whole point.
-            </p>
           </div>
         </section>
 
@@ -98,22 +101,39 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section className="py-20">
+          <div className="max-w-md mx-auto px-6 text-center">
+            <h2 className="font-display text-3xl mb-4">Pricing</h2>
+            <p className="font-display text-4xl mb-2">
+              {price.amountCents / 100} {price.currency}
+              <span className="text-base text-parchment/60"> /month</span>
+            </p>
+            <p className="text-sm text-parchment/70">
+              {price.discounted
+                ? "Localized pricing applied for your region."
+                : "Subscription required to run a challenge. Stakes are billed separately, only if you fail."}
+            </p>
+          </div>
+        </section>
+
         <section className="bg-parchment text-ink py-20">
           <div className="max-w-2xl mx-auto px-6 text-center">
             <h2 className="font-display text-3xl mb-4">Ready to put something on the line?</h2>
             <p className="text-ash mb-8">
-              It takes five minutes to set up. The people you name never see
-              an automatic email from us — you send the invitation yourself.
+              Five minutes to set up. Then it&rsquo;s real.
             </p>
             <Link href="/sign-up">
               <Button className="px-8 py-3.5 text-base">Create your challenge</Button>
             </Link>
+            <p className="text-xs text-ash mt-4">
+              Once they know what they could get, trust us, they&rsquo;ll be paying attention.
+            </p>
           </div>
         </section>
       </main>
 
       <footer className="max-w-5xl w-full mx-auto px-6 py-8 text-center text-xs text-ash">
-        Failsafe — a habit-accountability concept. No payments are processed by this app.
+        Failsafe: a habit-accountability app. Subscription-based, real stakes delivered as gift cards. We don&rsquo;t profit when you fail.
       </footer>
     </div>
   );

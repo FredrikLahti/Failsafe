@@ -38,7 +38,12 @@ export default async function DashboardPage() {
 
         {past.length > 0 && (
           <section className="mt-14">
-            <h2 className="font-display text-xl mb-4">Past challenges</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl">Past challenges</h2>
+              <Link href="/dashboard/memory-lane" className="text-sm text-gold">
+                Memory Lane
+              </Link>
+            </div>
             <div className="space-y-3">
               {past.map((c) => (
                 <PastChallengeRow key={c.id} challenge={c} />
@@ -176,7 +181,8 @@ function PastChallengeRow({ challenge }: { challenge: ChallengeRow }) {
   const statusLabel: Record<string, string> = {
     completed_success: "Completed",
     completed_failure_paid: "Failed — consequence paid",
-    completed_failure_unpaid: "Failed — consequence not paid",
+    // Reached only via a declined capture (e.g. card decline), never a user choice.
+    completed_failure_unpaid: "Failed — payment couldn't be processed",
   };
   return (
     <div className="flex items-center justify-between rounded-md border border-sage/20 px-4 py-3">

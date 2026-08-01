@@ -18,13 +18,79 @@ export type CheckinStatus = "good" | "partial" | "bad" | "missed";
 
 export type ReportOutcome = "completed" | "failed_paid" | "failed_unpaid";
 
+/** The only two outcomes the final-report form can submit — capture is automatic now. */
+export type SelectableReportOutcome = Extract<ReportOutcome, "completed" | "failed_paid">;
+
 export type ExperienceType = "dinner" | "tickets_event" | "trip" | "activity" | "other";
+
+export type SubscriptionStatus = "incomplete" | "active" | "past_due" | "canceled" | "trialing";
+
+export type StakePaymentStatus =
+  | "pending_card"
+  | "reserved"
+  | "released"
+  | "captured"
+  | "capture_failed";
+
+export type GiftCardDeliveryStatus = "pending" | "sent" | "failed";
+
+export type PhotoType = "self" | "beneficiary";
 
 export type ProfileRow = {
   id: string;
   email: string;
   display_name: string | null;
+  stripe_customer_id: string | null;
   created_at: string;
+};
+
+export type SubscriptionRow = {
+  id: string;
+  user_id: string;
+  stripe_customer_id: string;
+  stripe_subscription_id: string;
+  status: SubscriptionStatus;
+  currency: string;
+  base_price_cents: number;
+  localized_price_cents: number | null;
+  country_code: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StakePaymentRow = {
+  id: string;
+  challenge_id: string;
+  amount_cents: number;
+  currency: string;
+  fee_cents: number | null;
+  stripe_setup_intent_id: string | null;
+  stripe_payment_method_id: string | null;
+  stripe_payment_intent_id: string | null;
+  status: StakePaymentStatus;
+  captured_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GiftCardDeliveryRow = {
+  id: string;
+  challenge_id: string;
+  beneficiary_name: string;
+  amount_cents: number;
+  experience_type: ExperienceType;
+  tremendous_order_id: string | null;
+  tremendous_reward_id: string | null;
+  claim_url: string | null;
+  status: GiftCardDeliveryStatus;
+  delivered_at: string | null;
+  created_at: string;
+};
+
+export type GiftCardDeliveryShareRow = {
+  challenge_id: string;
+  beneficiary_name: string;
+  claim_url: string | null;
 };
 
 export type ChallengeRow = {
@@ -41,8 +107,8 @@ export type ChallengeRow = {
   beneficiaries: string[];
   experience_type: ExperienceType;
   experience_description: string;
-  /** Internal budgeting reference only — never surfaced as the primary framing in the UI. */
-  estimated_cost_cents: number | null;
+  /** The real stake: saved as a payment method at creation, captured only if the challenge fails. */
+  stake_amount_cents: number | null;
   start_date: string;
   status: ChallengeStatus;
   share_token: string;
@@ -66,9 +132,8 @@ export type FinalReportRow = {
   challenge_id: string;
   outcome: ReportOutcome;
   photo_url: string | null;
+  photo_type: PhotoType | null;
   what_happened: string | null;
-  would_binding_payment_help: boolean | null;
-  would_pay_for_automated: boolean | null;
   created_at: string;
 };
 
@@ -89,6 +154,7 @@ export type ChallengeShareRow = {
   completed_at: string | null;
   outcome: ReportOutcome | null;
   photo_url: string | null;
+  photo_type: PhotoType | null;
 };
 
 export type Database = {
@@ -162,10 +228,69 @@ export type Database = {
           },
         ];
       };
+      subscriptions: {
+        Row: SubscriptionRow;
+        Insert: Partial<SubscriptionRow> & {
+          user_id: string;
+          stripe_customer_id: string;
+          stripe_subscription_id: string;
+          status: SubscriptionStatus;
+        };
+        Update: Partial<SubscriptionRow>;
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      stake_payments: {
+        Row: StakePaymentRow;
+        Insert: Partial<StakePaymentRow> & {
+          challenge_id: string;
+          amount_cents: number;
+        };
+        Update: Partial<StakePaymentRow>;
+        Relationships: [
+          {
+            foreignKeyName: "stake_payments_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: true;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      gift_card_deliveries: {
+        Row: GiftCardDeliveryRow;
+        Insert: Partial<GiftCardDeliveryRow> & {
+          challenge_id: string;
+          beneficiary_name: string;
+          amount_cents: number;
+          experience_type: ExperienceType;
+        };
+        Update: Partial<GiftCardDeliveryRow>;
+        Relationships: [
+          {
+            foreignKeyName: "gift_card_deliveries_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       challenge_shares: {
         Row: ChallengeShareRow;
+        Relationships: [];
+      };
+      gift_card_delivery_shares: {
+        Row: GiftCardDeliveryShareRow;
         Relationships: [];
       };
     };

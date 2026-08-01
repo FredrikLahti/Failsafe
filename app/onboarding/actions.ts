@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getHabitCategory, DIFFICULTY_RANGES } from "@/lib/habits";
 import { parseBeneficiaries } from "@/lib/consequence";
+import { hasActiveSubscription, reserveStake } from "@/lib/payments/stake";
 import type { ExperienceType, HabitCategory } from "@/lib/types/database";
 
 export interface CreateChallengeInput {
@@ -15,7 +16,7 @@ export interface CreateChallengeInput {
   beneficiaries: string;
   experienceType: ExperienceType;
   experienceDescription: string;
-  estimatedCostCents: number | null;
+  stakeAmountCents: number;
 }
 
 export async function createChallenge(input: CreateChallengeInput) {
@@ -26,6 +27,10 @@ export async function createChallenge(input: CreateChallengeInput) {
 
   if (!user) {
     redirect("/sign-in");
+  }
+
+  if (!(await hasActiveSubscription(user.id))) {
+    throw new Error("An active subscription is required to start a challenge.");
   }
 
   const definition = getHabitCategory(input.category);
@@ -46,13 +51,19 @@ export async function createChallenge(input: CreateChallengeInput) {
       beneficiaries: parseBeneficiaries(input.beneficiaries),
       experience_type: input.experienceType,
       experience_description: input.experienceDescription.trim(),
-      estimated_cost_cents: input.estimatedCostCents,
+      stake_amount_cents: input.stakeAmountCents,
     })
     .select()
     .single();
 
   if (error || !challenge) {
     throw new Error(error?.message ?? "Could not create challenge");
+  }
+
+  const stake = await reserveStake(challenge.id, user.id, input.stakeAmountCents);
+  if (!stake.ok) {
+    await supabase.from("challenges").delete().eq("id", challenge.id);
+    throw new Error(stake.reason);
   }
 
   redirect(`/onboarding/invite/${challenge.id}`);

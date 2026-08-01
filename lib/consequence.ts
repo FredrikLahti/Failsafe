@@ -25,7 +25,7 @@ export const CONSEQUENCE_ANCHOR_EXAMPLES: { description: string; experienceType:
 ];
 
 export const CONSEQUENCE_ANCHOR_COPY =
-  "Don't pick something you'd happily pay for anyway. Pick something that makes you wince a little when you imagine actually paying for it. As a guide: over a 16-week challenge, that's roughly four paychecks for most people — if you can't imagine genuinely missing this money for one night, it's probably not big enough.";
+  "Don't pick something you'd gladly pay for anyway. This should genuinely hurt to lose. Harder habits deserve bigger stakes, a daily meditation slip and a missed gym routine shouldn't cost the same. If it doesn't feel like real money to you, go bigger. Worst case, your loved ones also get dessert!";
 
 export function formatBeneficiaries(beneficiaries: string[]): string {
   const names = beneficiaries.map((b) => b.trim()).filter(Boolean);
@@ -45,7 +45,9 @@ export function parseBeneficiaries(raw: string): string[] {
 /**
  * The one line of copy this whole feature hangs on: never framed as a
  * money transfer or payment to a recipient, always as an experience the
- * user misses out on.
+ * user misses out on. This is the only place in the app that spells out
+ * the full "not allowed to be there" phrasing — everywhere else shortens
+ * or drops it once the context already makes it clear.
  */
 export function consequenceSentence({
   beneficiaries,
@@ -54,5 +56,5 @@ export function consequenceSentence({
   beneficiaries: string[];
   experienceDescription: string;
 }): string {
-  return `If you fail, you'll treat ${formatBeneficiaries(beneficiaries)} to ${experienceDescription} — you just won't be there.`;
+  return `If you fail, ${formatBeneficiaries(beneficiaries)} get ${experienceDescription}. You're just not allowed to be there.`;
 }

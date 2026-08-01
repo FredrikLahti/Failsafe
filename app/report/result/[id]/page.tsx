@@ -42,29 +42,13 @@ export default async function ReportResultPage({
       <LetterCard
         variant={variant}
         eyebrow={isSuccess ? "Promise Kept" : "The Consequence"}
-        title={
-          isSuccess
-            ? "You kept your promise."
-            : challenge.status === "completed_failure_paid"
-              ? "You fell short — and paid it forward."
-              : "You fell short."
-        }
+        title={isSuccess ? "You kept your promise." : "You fell short."}
       >
         <p className="mb-4">
           {isSuccess
-            ? `${challenge.habit_title} — completed. ${beneficiaryNames} never had to be treated.`
-            : `${challenge.habit_title} didn't stick this time. If you fail, you treat ${beneficiaryNames} to ${challenge.experience_description} — you just aren't there for it.`}
+            ? `${challenge.habit_title}, completed. ${beneficiaryNames} never had to be treated. How rude of you.`
+            : `${challenge.habit_title} didn't stick this time. ${beneficiaryNames} now get ${challenge.experience_description}, what a nice person!`}
         </p>
-        {challenge.status === "completed_failure_paid" && (
-          <p className="mb-4 text-sm">
-            You followed through — {beneficiaryNames} got the experience, and you weren&rsquo;t there.
-          </p>
-        )}
-        {challenge.status === "completed_failure_unpaid" && (
-          <p className="mb-4 text-sm">
-            That treat hasn&rsquo;t happened yet. That&rsquo;s between you and {beneficiaryNames}.
-          </p>
-        )}
         {report?.what_happened && (
           <p className="text-sm italic border-t border-ink/10 pt-4 mt-4">&ldquo;{report.what_happened}&rdquo;</p>
         )}
@@ -80,6 +64,33 @@ export default async function ReportResultPage({
             />
           </div>
         )}
+        <div className="mt-6 border-t border-ink/10 pt-4">
+          <p className="text-sm mb-3">
+            {isSuccess
+              ? "Ready to raise the bar, or take on something new?"
+              : "Now you know where it broke down. Want to try again?"}
+          </p>
+          {isSuccess ? (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Link href="/onboarding">
+                <Button variant="secondary" className="w-full sm:w-auto">
+                  Make it harder
+                </Button>
+              </Link>
+              <Link href="/onboarding">
+                <Button variant="secondary" className="w-full sm:w-auto">
+                  Try something else
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <Link href="/onboarding">
+              <Button variant="secondary" className="w-full sm:w-auto">
+                Start a new challenge
+              </Button>
+            </Link>
+          )}
+        </div>
       </LetterCard>
 
       <div className="max-w-xl mx-auto mt-8 flex flex-col sm:flex-row gap-3 justify-center">
