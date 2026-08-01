@@ -8,6 +8,23 @@ export interface LocalizedPrice {
 }
 
 /**
+ * PPP/localized pricing is fully implemented below but switched off for
+ * now — everyone pays the flat SUBSCRIPTION_BASE_PRICE_CENTS_SEK price
+ * regardless of location until ParityDeals is properly configured and
+ * verified ahead of public launch (see PAYMENTS.md, "ParityDeals and VPN
+ * detection..."). Flip this to `true` once that's done; resolveLocalizedPrice
+ * below already does the right thing and doesn't need to change.
+ */
+const PPP_PRICING_ENABLED = false;
+
+// ---------------------------------------------------------------------------
+// PPP pricing (ParityDeals + VPN/proxy detection). Only reached when
+// PPP_PRICING_ENABLED is true above. Left in place, unmodified, so
+// re-enabling PPP pricing later is a one-line flag flip rather than a
+// rewrite.
+// ---------------------------------------------------------------------------
+
+/**
  * Purchasing-power-parity pricing via ParityDeals. Exact request/response
  * shape is unverified against ParityDeals' live API in this environment
  * (network access here is restricted to an allowlist that didn't include
@@ -66,14 +83,20 @@ async function isLikelyVpnOrProxy(ipAddress: string): Promise<boolean> {
   }
 }
 
+// --- end of PPP pricing section --------------------------------------------
+
 /**
- * Resolves what a user in `countryCode` should pay for the subscription.
- * Falls back to the base SEK price whenever ParityDeals isn't configured,
+ * Resolves what a user should pay for the subscription.
+ *
+ * While PPP_PRICING_ENABLED is false (current default), this always returns
+ * the flat base SEK price and ignores `countryCode`/`ipAddress` entirely —
+ * callers don't need to compute either one. Once PPP pricing is re-enabled,
+ * it falls back to the base SEK price whenever ParityDeals isn't configured,
  * the lookup fails, or the request looks like it's coming through a VPN/proxy.
  */
 export async function resolveLocalizedPrice(
-  countryCode: string | null,
-  ipAddress: string | null
+  countryCode: string | null = null,
+  ipAddress: string | null = null
 ): Promise<LocalizedPrice> {
   const base: LocalizedPrice = {
     amountCents: SUBSCRIPTION_BASE_PRICE_CENTS_SEK,
@@ -82,6 +105,7 @@ export async function resolveLocalizedPrice(
     discounted: false,
   };
 
+  if (!PPP_PRICING_ENABLED) return base;
   if (!countryCode) return base;
 
   const suspicious = await isLikelyVpnOrProxy(ipAddress ?? "");

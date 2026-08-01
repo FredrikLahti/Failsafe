@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { resolveLocalizedPrice } from "@/lib/pricing";
@@ -21,10 +20,11 @@ export async function POST() {
     );
   }
 
-  const hdrs = await headers();
-  const countryCode = hdrs.get("x-vercel-ip-country");
-  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  const price = await resolveLocalizedPrice(countryCode, ip);
+  // PPP/localized pricing is disabled for now (see PPP_PRICING_ENABLED in
+  // lib/pricing.ts) — everyone gets the flat base price. Once re-enabled,
+  // pass the visitor's country/IP back in here (see git history for the
+  // x-vercel-ip-country / x-forwarded-for lookup this used to do).
+  const price = await resolveLocalizedPrice();
 
   const stripe = getStripe();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -47,7 +47,7 @@ export async function POST() {
     cancel_url: `${siteUrl}/dashboard`,
     metadata: {
       user_id: user.id,
-      country_code: countryCode ?? "",
+      country_code: price.countryCode ?? "",
       localized: String(price.discounted),
     },
   });

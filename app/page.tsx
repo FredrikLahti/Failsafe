@@ -1,15 +1,16 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { Button } from "@/components/ui";
 import { WaxSeal } from "@/components/WaxSeal";
 import { HABIT_CATEGORIES } from "@/lib/habits";
 import { resolveLocalizedPrice } from "@/lib/pricing";
 
 export default async function LandingPage() {
-  const hdrs = await headers();
-  const countryCode = hdrs.get("x-vercel-ip-country");
-  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  const price = await resolveLocalizedPrice(countryCode, ip);
+  // PPP/localized pricing is disabled for now (see PPP_PRICING_ENABLED in
+  // lib/pricing.ts) — this always resolves to the flat base price. Once PPP
+  // pricing is re-enabled, pass the visitor's country/IP back in here (see
+  // git history for the x-vercel-ip-country / x-forwarded-for lookup this
+  // used to do).
+  const price = await resolveLocalizedPrice();
 
   return (
     <div className="flex-1 flex flex-col">
