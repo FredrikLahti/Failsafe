@@ -22,7 +22,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Failsafe: When you fail, your loved ones win.",
+  title: "Kinwin: When you fail, your loved ones win.",
   description:
     "Build a habit. Fail, and you're funding a night out for someone you love, one you're banned from attending.",
   manifest: "/manifest.webmanifest",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Failsafe",
+    title: "Kinwin",
   },
 };
 

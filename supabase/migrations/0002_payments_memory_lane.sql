@@ -1,4 +1,4 @@
--- Failsafe schema additions: Stripe subscription + stake tracking, Tremendous
+-- Kinwin schema additions: Stripe subscription + stake tracking, Tremendous
 -- gift-card delivery, and Memory Lane photo support.
 --
 -- Payment model note: a Stripe card authorization cannot be held open for
@@ -109,7 +109,7 @@ create table if not exists public.gift_card_deliveries (
   tremendous_order_id text,
   tremendous_reward_id text,
   -- The Tremendous LINK-delivery claim URL, surfaced on the public share
-  -- page so the beneficiary can redeem it there (Failsafe never collects
+  -- page so the beneficiary can redeem it there (Kinwin never collects
   -- beneficiary emails, so there's no other channel to deliver it through).
   claim_url text,
   status text not null default 'pending' check (status in ('pending', 'sent', 'failed')),

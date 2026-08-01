@@ -5,7 +5,7 @@
 
 -- ---------------------------------------------------------------------------
 -- Optional shared contact email for the beneficiaries named on a challenge.
--- Never required — Failsafe still works entirely through the share link
+-- Never required — Kinwin still works entirely through the share link
 -- when this is left blank.
 -- ---------------------------------------------------------------------------
 alter table public.challenges

@@ -1,11 +1,11 @@
 import { createHash, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 
-export const ADMIN_COOKIE_NAME = "failsafe_admin_session";
+export const ADMIN_COOKIE_NAME = "kinwin_admin_session";
 
 function expectedCookieValue(): string {
   const password = process.env.ADMIN_DASHBOARD_PASSWORD ?? "";
-  return createHash("sha256").update(`failsafe-admin:${password}`).digest("hex");
+  return createHash("sha256").update(`kinwin-admin:${password}`).digest("hex");
 }
 
 export function checkAdminPassword(candidate: string): boolean {

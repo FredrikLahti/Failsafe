@@ -20,7 +20,7 @@ export default async function OnboardingPage() {
         <div className="max-w-sm text-center">
           <h1 className="font-display text-2xl sm:text-3xl mb-4">Subscribe to start</h1>
           <p className="text-parchment/70 mb-8">
-            A Failsafe subscription ({SUBSCRIPTION_BASE_PRICE_CENTS_SEK / 100} SEK/month, less in
+            A Kinwin subscription ({SUBSCRIPTION_BASE_PRICE_CENTS_SEK / 100} SEK/month, less in
             some countries) is required to create a challenge — it&rsquo;s what keeps the stake
             mechanic running.
           </p>

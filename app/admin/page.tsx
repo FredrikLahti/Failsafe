@@ -77,7 +77,7 @@ export default async function AdminPage() {
     <div className="flex-1 flex flex-col">
       <header className="border-b border-sage/20">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <span className="font-display text-lg">Failsafe Admin</span>
+          <span className="font-display text-lg">Kinwin Admin</span>
           <form action="/admin/logout" method="post">
             <button type="submit" className="text-sm text-parchment/70 hover:text-parchment">
               Log out

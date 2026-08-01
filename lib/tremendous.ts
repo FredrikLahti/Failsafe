@@ -56,7 +56,7 @@ interface DeliverGiftCardsInput {
  * beneficiary email was captured at onboarding (fully automatic, no share
  * page needed); otherwise use LINK delivery with no email at all,
  * surfacing the claim URL (reward.delivery.link) on the public share page
- * instead — Failsafe doesn't require beneficiary contact info by design.
+ * instead — Kinwin doesn't require beneficiary contact info by design.
  */
 export async function deliverGiftCards({
   challengeId,

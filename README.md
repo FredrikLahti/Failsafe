@@ -1,8 +1,8 @@
-# Failsafe
+# Kinwin
 
 When you fail, your loved ones win.
 
-Failsafe is a habit-accountability app: build a habit, and put a real stake
+Kinwin is a habit-accountability app: build a habit, and put a real stake
 behind it. Subscribe monthly to run challenges; at each challenge's creation
 you set a stake amount that's saved against your card on file (nothing
 charged up front). Succeed and nothing is ever charged. Fail, and that stake

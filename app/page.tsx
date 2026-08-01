@@ -14,7 +14,7 @@ export default async function LandingPage() {
   return (
     <div className="flex-1 flex flex-col">
       <header className="max-w-5xl w-full mx-auto px-6 py-6 flex items-center justify-between">
-        <span className="font-display text-xl tracking-wide">Failsafe</span>
+        <span className="font-display text-xl tracking-wide">Kinwin</span>
         <nav className="flex items-center gap-3">
           <Link
             href="/sign-in"
@@ -60,7 +60,7 @@ export default async function LandingPage() {
 
         <section id="how-it-works" className="bg-parchment text-ink py-20">
           <div className="max-w-5xl mx-auto px-6">
-            <h2 className="font-display text-3xl text-center mb-14">How Failsafe works</h2>
+            <h2 className="font-display text-3xl text-center mb-14">How Kinwin works</h2>
             <div className="grid sm:grid-cols-3 gap-8">
               <HowItWorksCard
                 step="1"
@@ -133,7 +133,7 @@ export default async function LandingPage() {
       </main>
 
       <footer className="max-w-5xl w-full mx-auto px-6 py-8 text-center text-xs text-ash">
-        Failsafe: a habit-accountability app. Subscription-based, real stakes delivered as gift cards. We don&rsquo;t profit when you fail.
+        Kinwin: a habit-accountability app. Subscription-based, real stakes delivered as gift cards. We don&rsquo;t profit when you fail.
       </footer>
     </div>
   );

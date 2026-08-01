@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Failsafe: When you fail, your loved ones win.",
-    short_name: "Failsafe",
+    name: "Kinwin: When you fail, your loved ones win.",
+    short_name: "Kinwin",
     description:
       "Build a habit. Fail, and you're funding a night out for someone you love, one you're banned from attending.",
     start_url: "/",

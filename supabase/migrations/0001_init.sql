@@ -1,4 +1,4 @@
--- Failsafe schema: profiles, challenges, checkins, final reports.
+-- Kinwin schema: profiles, challenges, checkins, final reports.
 -- Run this in the Supabase SQL editor, or via `supabase db push`.
 
 create extension if not exists pgcrypto;

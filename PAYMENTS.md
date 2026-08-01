@@ -9,7 +9,7 @@ credentials.
 
 Stripe (and the underlying card networks) release an uncaptured
 authorization automatically — in practice within about a week, not the
-3-20 weeks a Failsafe challenge runs. Holding a single PaymentIntent open
+3-20 weeks a Kinwin challenge runs. Holding a single PaymentIntent open
 for the life of a challenge isn't something Stripe supports, so this
 doesn't do that. Instead:
 
@@ -41,7 +41,7 @@ reusing a status value that used to be user-selectable and no longer is.
 
 ## Gift card delivery: LINK by default, EMAIL when we have an address
 
-Failsafe doesn't require a beneficiary's email or phone by design — the
+Kinwin doesn't require a beneficiary's email or phone by design — the
 whole point is that the user sends the invite themselves.
 
 **Verified directly against Tremendous's API Blueprint spec
@@ -54,7 +54,7 @@ also published as source on GitHub, which isn't:
   Email only matters as the address `EMAIL` delivery sends to; under `LINK`
   it isn't needed at all. (An earlier pass had this backwards — assumed
   email was required unconditionally and sent a placeholder
-  `noreply@failsafe.app`-style address under LINK delivery for no reason.
+  `noreply@kinwin.app`-style address under LINK delivery for no reason.
   Fixed: LINK requests now send `recipient: { name }` with no email.)
 - The request body's `rewards` array (not a singular `reward`) is the
   current/preferred shape — confirmed in the spec, which documents `reward`

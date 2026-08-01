@@ -38,7 +38,7 @@ export async function POST() {
           currency: price.currency.toLowerCase(),
           unit_amount: price.amountCents,
           recurring: { interval: "month" },
-          product_data: { name: "Failsafe subscription" },
+          product_data: { name: "Kinwin subscription" },
         },
         quantity: 1,
       },

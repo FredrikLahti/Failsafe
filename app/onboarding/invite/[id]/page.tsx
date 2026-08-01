@@ -47,7 +47,7 @@ export default async function InvitePage({
       <div className="max-w-xl mx-auto mb-8 text-center">
         <p className="text-sm text-parchment/70">
           Your challenge is set. Now send this to {beneficiaryNames} yourself —
-          Failsafe never emails them for you.
+          Kinwin never emails them for you.
         </p>
       </div>
 
@@ -102,5 +102,5 @@ You can follow how it goes here:
 ${shareUrl}
 
 With intention,
-Sent via Failsafe`;
+Sent via Kinwin`;
 }

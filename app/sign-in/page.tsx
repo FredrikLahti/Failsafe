@@ -68,7 +68,7 @@ function SignInForm() {
         </Button>
       </form>
       <p className="text-sm text-parchment/60 mt-6 text-center">
-        New to Failsafe?{" "}
+        New to Kinwin?{" "}
         <Link href="/sign-up" className="text-gold">
           Create an account
         </Link>

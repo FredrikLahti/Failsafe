@@ -1,9 +1,9 @@
-// Failsafe service worker — basic offline asset caching.
+// Kinwin service worker — basic offline asset caching.
 // Strategy: cache-first for static assets (icons, fonts, chunks), network-
 // first for page navigations with a cached-shell / offline-page fallback.
 
 const CACHE_VERSION = "v1";
-const CACHE_NAME = `failsafe-${CACHE_VERSION}`;
+const CACHE_NAME = `kinwin-${CACHE_VERSION}`;
 
 const APP_SHELL = [
   "/",
@@ -29,7 +29,10 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key.startsWith("failsafe-") && key !== CACHE_NAME)
+            .filter(
+              (key) =>
+                (key.startsWith("kinwin-") || key.startsWith("failsafe-")) && key !== CACHE_NAME
+            )
             .map((key) => caches.delete(key))
         )
       )

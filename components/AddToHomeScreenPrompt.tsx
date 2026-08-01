@@ -3,7 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui";
 
-const DISMISSED_KEY = "failsafe_a2hs_dismissed";
+const DISMISSED_KEY = "kinwin_a2hs_dismissed";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -38,7 +38,7 @@ function useHydrated(): boolean {
 }
 
 /**
- * Guides the user to add Failsafe to their home screen right after
+ * Guides the user to add Kinwin to their home screen right after
  * onboarding, since reliable push notifications and a native-feeling app
  * only work once it's installed. iOS has no install API — it's Share →
  * Add to Home Screen — while Android Chrome exposes a real install prompt
@@ -88,16 +88,16 @@ export function AddToHomeScreenPrompt() {
     <div className="rounded-md border border-gold/50 bg-gold/10 px-4 py-4 mb-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium mb-1">Add Failsafe to your home screen</p>
+          <p className="text-sm font-medium mb-1">Add Kinwin to your home screen</p>
           {platform === "ios" ? (
             <p className="text-sm text-parchment/80">
               Tap the <strong>Share</strong> icon in Safari, then choose{" "}
               <strong>Add to Home Screen</strong>. This keeps check-in
-              reminders reliable and makes Failsafe feel like a real app.
+              reminders reliable and makes Kinwin feel like a real app.
             </p>
           ) : (
             <p className="text-sm text-parchment/80">
-              Install Failsafe for reliable reminders and a faster, full-screen experience.
+              Install Kinwin for reliable reminders and a faster, full-screen experience.
             </p>
           )}
         </div>
