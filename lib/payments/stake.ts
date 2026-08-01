@@ -5,11 +5,15 @@ import type { ExperienceType } from "@/lib/types/database";
 
 export async function hasActiveSubscription(userId: string): Promise<boolean> {
   const supabase = createServiceRoleClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("subscriptions")
     .select("status")
     .eq("user_id", userId)
     .maybeSingle();
+  if (error) {
+    console.error(`[stake] hasActiveSubscription: query failed for user ${userId}:`, error.message);
+    return false;
+  }
   return data?.status === "active" || data?.status === "trialing";
 }
 
@@ -26,11 +30,16 @@ export async function reserveStake(
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   const supabase = createServiceRoleClient();
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("stripe_customer_id")
     .eq("id", userId)
     .single();
+
+  if (profileError) {
+    console.error(`[stake] reserveStake: profile lookup failed for user ${userId}:`, profileError.message);
+    return { ok: false, reason: "Could not look up your billing profile — try again." };
+  }
 
   if (!profile?.stripe_customer_id) {
     return { ok: false, reason: "No Stripe customer on file — subscribe first." };
@@ -74,10 +83,13 @@ export async function reserveStake(
 /** Success outcome: nothing was ever charged, so this just closes the record out. */
 export async function releaseStake(challengeId: string): Promise<void> {
   const supabase = createServiceRoleClient();
-  await supabase
+  const { error } = await supabase
     .from("stake_payments")
     .update({ status: "released", updated_at: new Date().toISOString() })
     .eq("challenge_id", challengeId);
+  if (error) {
+    console.error(`[stake] releaseStake: failed to update challenge ${challengeId}:`, error.message);
+  }
 }
 
 /**
@@ -92,29 +104,40 @@ export async function captureStake(
 ): Promise<void> {
   const supabase = createServiceRoleClient();
 
-  const { data: stake } = await supabase
+  const { data: stake, error: stakeError } = await supabase
     .from("stake_payments")
     .select("*")
     .eq("challenge_id", challengeId)
     .single();
 
+  if (stakeError) {
+    console.error(`[stake] captureStake: stake_payments lookup failed for challenge ${challengeId}:`, stakeError.message);
+    return;
+  }
   if (!stake || !stake.stripe_payment_method_id) return;
 
-  const { data: challenge } = await supabase
+  const { data: challenge, error: challengeError } = await supabase
     .from("challenges")
     .select("user_id, profiles(stripe_customer_id)")
     .eq("id", challengeId)
     .single()
     .returns<{ user_id: string; profiles: { stripe_customer_id: string | null } | null }>();
 
+  if (challengeError) {
+    console.error(`[stake] captureStake: challenge lookup failed for challenge ${challengeId}:`, challengeError.message);
+  }
+
   const customerId = challenge?.profiles?.stripe_customer_id;
   const feeCents = STAKE_CAPTURE_FEE_CENTS_SEK;
 
   if (!isStripeConfigured() || !customerId) {
-    await supabase
+    const { error } = await supabase
       .from("stake_payments")
       .update({ status: "capture_failed", updated_at: new Date().toISOString() })
       .eq("challenge_id", challengeId);
+    if (error) {
+      console.error(`[stake] captureStake: failed to mark capture_failed for challenge ${challengeId}:`, error.message);
+    }
     await flagCaptureFailure(challengeId);
     return;
   }
@@ -130,7 +153,7 @@ export async function captureStake(
       confirm: true,
     });
 
-    await supabase
+    const { error } = await supabase
       .from("stake_payments")
       .update({
         status: "captured",
@@ -140,6 +163,9 @@ export async function captureStake(
         updated_at: new Date().toISOString(),
       })
       .eq("challenge_id", challengeId);
+    if (error) {
+      console.error(`[stake] captureStake: charge succeeded (${intent.id}) but failed to record it for challenge ${challengeId}:`, error.message);
+    }
 
     await deliverGiftCards({
       challengeId,
@@ -148,11 +174,15 @@ export async function captureStake(
       totalAmountCents: stake.amount_cents,
       beneficiaryEmail: input.beneficiaryEmail,
     });
-  } catch {
-    await supabase
+  } catch (err) {
+    console.error(`[stake] captureStake: charge failed for challenge ${challengeId}:`, err instanceof Error ? err.message : err);
+    const { error } = await supabase
       .from("stake_payments")
       .update({ status: "capture_failed", updated_at: new Date().toISOString() })
       .eq("challenge_id", challengeId);
+    if (error) {
+      console.error(`[stake] captureStake: failed to mark capture_failed for challenge ${challengeId}:`, error.message);
+    }
     await flagCaptureFailure(challengeId);
   }
 }
@@ -160,8 +190,11 @@ export async function captureStake(
 /** Surfaces a declined capture to the admin dashboard without changing what the user sees on their result page. */
 async function flagCaptureFailure(challengeId: string): Promise<void> {
   const supabase = createServiceRoleClient();
-  await supabase
+  const { error } = await supabase
     .from("challenges")
     .update({ status: "completed_failure_unpaid" })
     .eq("id", challengeId);
+  if (error) {
+    console.error(`[stake] flagCaptureFailure: failed to update challenge ${challengeId}:`, error.message);
+  }
 }

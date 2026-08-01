@@ -69,11 +69,26 @@ export async function deliverGiftCards({
   const productId = process.env[CATEGORY_PRODUCT_ENV[experienceType]];
 
   if (!isTremendousConfigured() || !productId) {
+    const amounts = splitEvenly(totalAmountCents, beneficiaries.length);
+    console.log(
+      "[tremendous:stub] Tremendous not configured — logging orders instead of calling the API:",
+      JSON.stringify(
+        beneficiaries.map((name, i) => ({
+          challengeId,
+          recipient: beneficiaryEmail?.trim()
+            ? { name, email: beneficiaryEmail.trim() }
+            : { name },
+          delivery: beneficiaryEmail?.trim() ? "EMAIL" : "LINK",
+          value: { denomination: centsToWholeUnits(amounts[i]), currency_code: "SEK" },
+          experienceType,
+        }))
+      )
+    );
     await supabase.from("gift_card_deliveries").insert(
       beneficiaries.map((name, i) => ({
         challenge_id: challengeId,
         beneficiary_name: name,
-        amount_cents: splitEvenly(totalAmountCents, beneficiaries.length)[i],
+        amount_cents: amounts[i],
         experience_type: experienceType,
         status: "failed" as const,
       }))

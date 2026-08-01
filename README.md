@@ -53,6 +53,38 @@ card — you just aren't there for it.
 See `PAYMENTS.md` for how the stake/capture/delivery model actually works
 and what's unverified pending real Stripe/Tremendous credentials.
 
+### Local Stripe webhook testing
+
+`/api/webhooks/stripe` only gets called by Stripe itself — a Stripe test-mode
+checkout completed against `localhost:3000` will **not** trigger it, because
+Stripe has no way to reach your machine. Without the webhook firing, the
+checkout redirect succeeds but `subscriptions` never gets its row and
+`/onboarding` keeps showing the "subscribe first" gate even though the test
+card was charged. This is easy to mistake for a bug — it's just a missing
+local forwarder.
+
+To receive real webhook events locally:
+
+1. Install the [Stripe CLI](https://stripe.com/docs/stripe-cli) and run
+   `stripe login` once.
+2. In a separate terminal, forward events to your dev server:
+
+   ```bash
+   stripe listen --forward-to localhost:3000/api/webhooks/stripe
+   ```
+
+3. Copy the `whsec_...` signing secret this prints into `.env.local` as
+   `STRIPE_WEBHOOK_SECRET`, then restart `npm run dev` so it picks up the
+   value.
+4. Complete a checkout with a [Stripe test
+   card](https://stripe.com/docs/testing#cards) (e.g. `4242 4242 4242 4242`)
+   — `stripe listen` will show the event and forward it, and the terminal
+   running `npm run dev` will log the result (see the error-logging notes in
+   `PAYMENTS.md` if a forwarded event fails).
+
+`stripe trigger checkout.session.completed` also works for a quick smoke test
+of the handler in isolation, without a real checkout session backing it.
+
 ## App map
 
 - `/` — landing page, with a pricing section showing the (optionally

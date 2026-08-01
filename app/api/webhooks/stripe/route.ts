@@ -58,9 +58,19 @@ export async function POST(request: Request) {
 
       if (!userId || !customerId || !subscriptionId) break;
 
-      await supabase.from("profiles").update({ stripe_customer_id: customerId }).eq("id", userId);
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({ stripe_customer_id: customerId })
+        .eq("id", userId);
+      if (profileError) {
+        console.error(
+          `[webhook] checkout.session.completed: failed to save stripe_customer_id for user ${userId}:`,
+          profileError.message
+        );
+        return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
+      }
 
-      await supabase.from("subscriptions").upsert(
+      const { error: subscriptionError } = await supabase.from("subscriptions").upsert(
         {
           user_id: userId,
           stripe_customer_id: customerId,
@@ -70,6 +80,13 @@ export async function POST(request: Request) {
         },
         { onConflict: "user_id" }
       );
+      if (subscriptionError) {
+        console.error(
+          `[webhook] checkout.session.completed: failed to upsert subscription for user ${userId}:`,
+          subscriptionError.message
+        );
+        return NextResponse.json({ error: "Failed to record subscription" }, { status: 500 });
+      }
 
       // Make the card used at checkout the customer's default payment
       // method, so per-challenge stake reservation has something to find.
@@ -78,9 +95,17 @@ export async function POST(request: Request) {
       const paymentMethodId =
         typeof paymentMethod === "string" ? paymentMethod : (paymentMethod?.id ?? null);
       if (paymentMethodId) {
-        await stripe.customers.update(customerId, {
-          invoice_settings: { default_payment_method: paymentMethodId },
-        });
+        try {
+          await stripe.customers.update(customerId, {
+            invoice_settings: { default_payment_method: paymentMethodId },
+          });
+        } catch (err) {
+          console.error(
+            `[webhook] checkout.session.completed: failed to set default payment method for customer ${customerId}:`,
+            err instanceof Error ? err.message : err
+          );
+          return NextResponse.json({ error: "Failed to set default payment method" }, { status: 500 });
+        }
       }
       break;
     }
@@ -88,13 +113,20 @@ export async function POST(request: Request) {
     case "customer.subscription.updated":
     case "customer.subscription.deleted": {
       const subscription = event.data.object as Stripe.Subscription;
-      await supabase
+      const { error } = await supabase
         .from("subscriptions")
         .update({
           status: mapStripeStatus(subscription.status),
           updated_at: new Date().toISOString(),
         })
         .eq("stripe_subscription_id", subscription.id);
+      if (error) {
+        console.error(
+          `[webhook] ${event.type}: failed to update subscription ${subscription.id}:`,
+          error.message
+        );
+        return NextResponse.json({ error: "Failed to update subscription" }, { status: 500 });
+      }
       break;
     }
 

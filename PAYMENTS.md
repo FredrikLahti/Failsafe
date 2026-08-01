@@ -98,6 +98,27 @@ up, not a security guarantee. Unlike Tremendous, ParityDeals doesn't publish
 an open-source spec/client to verify against the same way, so the request
 shape in `fetchParityDealsPrice` remains a best-effort guess, not verified.
 
+## Webhook and stake-write failures are no longer silent
+
+An earlier pass had the webhook handler and `lib/payments/stake.ts` ignoring
+Supabase write errors (`const { data } = await supabase...`, `error`
+discarded). This actually happened during testing: the payments migrations
+(`0002`, `0003`) hadn't been applied to the target database yet, every write
+in `checkout.session.completed` failed, and the handler still returned `200
+{ received: true }` — Stripe considered the webhook delivered, the
+subscription silently never activated, and nothing in the logs said why.
+
+Fixed: every Supabase call in `app/api/webhooks/stripe/route.ts` and
+`lib/payments/stake.ts` now checks its `error` and `console.error`s it with
+enough context (challenge/user/subscription id) to find the row. The webhook
+handler additionally returns HTTP 500 on a DB write failure instead of 200 —
+Stripe's retry logic (exponential backoff, several attempts over ~3 days)
+then does the right thing on a transient failure instead of the event being
+marked delivered and dropped. If you see `[webhook]` or `[stake]` errors in
+the server log, that's real: something (usually a schema mismatch) is
+preventing state from being recorded, even though Stripe itself may have
+succeeded.
+
 ## Still not tested against a live Stripe/Tremendous/ParityDeals account
 
 No credentials for any of these services were available in the environment
@@ -106,6 +127,27 @@ feature, mark a delivery/capture as failed) when unconfigured. Tremendous's
 request/response shape is now verified against their published spec (above);
 Stripe's calls use the official SDK so its shape is trustworthy by
 construction; ParityDeals remains unverified.
+
+## AI agents and Stripe Checkout: test mode only, never delegated end to end
+
+Stripe Checkout now shows an "I am an AI agent acting on behalf of someone
+else" disclosure checkbox. During test-mode QA of this payment flow, an AI
+agent (Claude Code) drove Checkout end to end — filling card details and
+submitting — including once completing a live 3D Secure challenge. That
+checkbox's underlying element couldn't be reliably interacted with by the
+agent's browser tooling in that pass, so whether it ended up checked is
+unconfirmed.
+
+That's an acceptable gap for exploratory testing against a **test-mode**
+Stripe account with test cards, where nothing real is charged and no real
+cardholder is involved. It is not acceptable for any checkout against the
+**live/production** Stripe account: an AI agent must not carry a real
+checkout through to the final submit/pay step on a human's behalf. For real
+transactions, an agent may prepare the checkout (start the session, fill in
+non-sensitive fields) but a human must review and click the final
+payment/subscribe action themselves — the same boundary this project already
+applies to entering payment details or submitting forms per its operating
+rules.
 
 ## Display name
 
