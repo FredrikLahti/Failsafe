@@ -4,6 +4,7 @@ import { isAdminAuthed } from "@/lib/admin-auth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { getHabitCategory } from "@/lib/habits";
 import { computeStreak, currentWeekNumber, fillMissedWeeks } from "@/lib/streak";
+import { effectiveDurationWeeksMax, totalPausedDaysAsOf } from "@/lib/pause";
 import { experienceTypeLabel, formatBeneficiaries } from "@/lib/consequence";
 import type { ChallengeRow, CheckinStatus, StakePaymentStatus } from "@/lib/types/database";
 
@@ -24,6 +25,7 @@ interface StakeLite {
 
 const STATUS_LABEL: Record<string, string> = {
   active: "Active",
+  paused: "Paused",
   completed_success: "Completed",
   completed_failure_paid: "Failed (paid)",
   // Only reached via an admin-visible capture failure (e.g. card decline) —
@@ -104,6 +106,7 @@ export default async function AdminPage() {
                 <th className="py-2 pr-4">Stake</th>
                 <th className="py-2 pr-4">Progress</th>
                 <th className="py-2 pr-4">Streak</th>
+                <th className="py-2 pr-4">Paused</th>
                 <th className="py-2 pr-4">Started</th>
                 <th className="py-2 pr-4">Share</th>
               </tr>
@@ -111,10 +114,13 @@ export default async function AdminPage() {
             <tbody>
               {(challenges ?? []).map((c) => {
                 const checkins = checkinsByChallenge.get(c.id) ?? [];
-                const week = currentWeekNumber(c.start_date);
+                const pausedDays = totalPausedDaysAsOf(c);
+                const week = currentWeekNumber(c.start_date, pausedDays);
+                const effectiveMax = effectiveDurationWeeksMax(c.duration_weeks_max, pausedDays);
                 const weeks = fillMissedWeeks(checkins, week);
                 const streak = computeStreak(weeks);
                 const email = c.profiles?.email ?? "—";
+                const inProgress = c.status === "active" || c.status === "paused";
                 return (
                   <tr key={c.id} className="border-b border-sage/10">
                     <td className="py-2 pr-4">{email}</td>
@@ -134,11 +140,10 @@ export default async function AdminPage() {
                         : "—"}
                     </td>
                     <td className="py-2 pr-4 font-mono">
-                      {c.status === "active"
-                        ? `wk ${week} of ${c.duration_weeks_min}-${c.duration_weeks_max}`
-                        : "—"}
+                      {inProgress ? `wk ${week} of ${c.duration_weeks_min}-${effectiveMax}` : "—"}
                     </td>
                     <td className="py-2 pr-4 font-mono">{streak}</td>
+                    <td className="py-2 pr-4 font-mono">{c.paused_days_total > 0 ? `${c.paused_days_total}d` : "—"}</td>
                     <td className="py-2 pr-4">{c.start_date}</td>
                     <td className="py-2 pr-4">
                       <Link href={`/share/${c.share_token}`} className="text-gold">

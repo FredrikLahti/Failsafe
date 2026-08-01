@@ -22,6 +22,17 @@ export async function submitCheckin({
   } = await supabase.auth.getUser();
   if (!user) redirect("/sign-in");
 
+  const { data: challenge } = await supabase
+    .from("challenges")
+    .select("status")
+    .eq("id", challengeId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (!challenge || challenge.status !== "active") {
+    throw new Error("This challenge isn't accepting check-ins right now.");
+  }
+
   const { error } = await supabase.from("checkins").insert({
     challenge_id: challengeId,
     week_number: weekNumber,

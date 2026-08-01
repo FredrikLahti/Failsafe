@@ -2,15 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { releaseStake, captureStake } from "@/lib/payments/stake";
-import type { ChallengeStatus, SelectableReportOutcome } from "@/lib/types/database";
 
-const STATUS_BY_OUTCOME: Record<SelectableReportOutcome, ChallengeStatus> = {
-  completed: "completed_success",
-  failed_paid: "completed_failure_paid",
-};
-
-export async function submitFinalReport(formData: FormData) {
+/**
+ * The outcome itself is no longer decided here — it's already been written
+ * by finalizeChallengeIfDue (lib/challenge-lifecycle.ts) by the time the
+ * user reaches this form. This only saves the optional photo and
+ * "what happened" notes onto the existing final_reports row.
+ */
+export async function submitReportDetails(formData: FormData) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,13 +17,12 @@ export async function submitFinalReport(formData: FormData) {
   if (!user) redirect("/sign-in");
 
   const challengeId = String(formData.get("challengeId"));
-  const outcome = String(formData.get("outcome")) as SelectableReportOutcome;
   const whatHappened = String(formData.get("whatHappened") || "");
   const photo = formData.get("photo");
 
   const { data: challenge } = await supabase
     .from("challenges")
-    .select("beneficiaries, experience_type, beneficiary_email")
+    .select("status")
     .eq("id", challengeId)
     .eq("user_id", user.id)
     .single();
@@ -37,7 +35,7 @@ export async function submitFinalReport(formData: FormData) {
 
   // Self-photos are only collected on success — a failure's Memory Lane
   // photo comes from the beneficiary after the gift card is delivered.
-  if (outcome === "completed" && photo instanceof File && photo.size > 0) {
+  if (challenge.status === "completed_success" && photo instanceof File && photo.size > 0) {
     const path = `${user.id}/${challengeId}-${Date.now()}-${photo.name}`;
     const { error: uploadError } = await supabase.storage
       .from("challenge-photos")
@@ -49,39 +47,17 @@ export async function submitFinalReport(formData: FormData) {
     }
   }
 
-  const { error: reportError } = await supabase.from("final_reports").insert({
-    challenge_id: challengeId,
-    outcome,
-    photo_url: photoUrl,
-    photo_type: photoUrl ? "self" : null,
-    what_happened: whatHappened.trim() || null,
-  });
-
-  if (reportError) {
-    throw new Error(reportError.message);
-  }
-
-  const { error: updateError } = await supabase
-    .from("challenges")
+  const { error } = await supabase
+    .from("final_reports")
     .update({
-      status: STATUS_BY_OUTCOME[outcome],
-      completed_at: new Date().toISOString(),
+      what_happened: whatHappened.trim() || null,
+      photo_url: photoUrl,
+      photo_type: photoUrl ? "self" : null,
     })
-    .eq("id", challengeId)
-    .eq("user_id", user.id);
+    .eq("challenge_id", challengeId);
 
-  if (updateError) {
-    throw new Error(updateError.message);
-  }
-
-  if (outcome === "completed") {
-    await releaseStake(challengeId);
-  } else {
-    await captureStake(challengeId, {
-      beneficiaries: challenge.beneficiaries,
-      experienceType: challenge.experience_type,
-      beneficiaryEmail: challenge.beneficiary_email,
-    });
+  if (error) {
+    throw new Error(error.message);
   }
 
   redirect(`/report/result/${challengeId}`);

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui";
 import { BeneficiaryPhotoUpload } from "@/components/BeneficiaryPhotoUpload";
 import { getHabitCategory } from "@/lib/habits";
 import { currentWeekNumber } from "@/lib/streak";
+import { effectiveDurationWeeksMax, totalPausedDaysAsOf } from "@/lib/pause";
 import { experienceTypeLabel, formatBeneficiaries } from "@/lib/consequence";
 
 export default async function SharePage({
@@ -26,12 +27,15 @@ export default async function SharePage({
   if (!share) notFound();
 
   const category = getHabitCategory(share.category);
-  const isActive = share.status === "active";
+  const isPaused = share.status === "paused";
+  const isActive = share.status === "active" || isPaused;
   const isSuccess = share.status === "completed_success";
   const isFailure = !isActive && !isSuccess;
   const variant = isActive ? "neutral" : isSuccess ? "gold" : "ember";
   const beneficiaryNames = formatBeneficiaries(share.beneficiaries);
   const experienceLabel = experienceTypeLabel(share.experience_type);
+  const pausedDays = totalPausedDaysAsOf(share);
+  const effectiveMax = effectiveDurationWeeksMax(share.duration_weeks_max, pausedDays);
 
   const { data: deliveries } = isFailure
     ? await supabase
@@ -60,11 +64,11 @@ export default async function SharePage({
         </p>
         {isActive ? (
           <p className="mb-4">
-            I&rsquo;m {currentWeekNumber(share.start_date)} weeks into an{" "}
-            {share.duration_weeks_min}-{share.duration_weeks_max} week
-            challenge. If I don&rsquo;t pull it off, {beneficiaryNames} get{" "}
-            {share.experience_description}. I&rsquo;m just not allowed to be
-            there for it.
+            I&rsquo;m {currentWeekNumber(share.start_date, pausedDays)} weeks into an{" "}
+            {share.duration_weeks_min}-{effectiveMax} week
+            challenge{isPaused ? ", currently paused" : ""}. If I don&rsquo;t pull it off,{" "}
+            {beneficiaryNames} get {share.experience_description}. I&rsquo;m just not
+            allowed to be there for it.
           </p>
         ) : isSuccess ? (
           <p className="mb-4">

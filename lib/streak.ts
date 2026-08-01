@@ -5,20 +5,34 @@ export interface WeekStatus {
   status: CheckinStatus;
 }
 
-export function currentWeekNumber(startDate: string, today: Date = new Date()): number {
+/**
+ * Which week of ACTIVE time `today` falls in. `pausedDays` (see
+ * lib/pause.ts's totalPausedDaysAsOf) is subtracted from elapsed calendar
+ * days first, so the week number freezes for the duration of a pause
+ * instead of ticking forward — pausing costs no week and skips nothing.
+ */
+export function currentWeekNumber(startDate: string, pausedDays = 0, today: Date = new Date()): number {
   const start = new Date(startDate + "T00:00:00");
-  const diffDays = Math.floor((today.getTime() - start.getTime()) / 86_400_000);
+  const diffDays = Math.floor((today.getTime() - start.getTime()) / 86_400_000) - pausedDays;
   return Math.max(1, Math.floor(diffDays / 7) + 1);
 }
 
 /**
  * Weeks that have fully elapsed (1..currentWeek-1) but have no check-in row
  * are backfilled as "missed" so streak/badge math sees them without
- * requiring a real DB row for every silent week.
+ * requiring a real DB row for every silent week. `currentWeek` itself is
+ * only included if a real check-in exists for it — it's still in progress,
+ * so no missed-week judgment is made yet.
+ *
+ * Pass `includeCurrentIfMissing: true` when `currentWeek` is actually the
+ * challenge's final week and the evaluation deadline has already passed
+ * (see lib/challenge-lifecycle.ts) — there, a missing final check-in is a
+ * real miss, not a week still in progress.
  */
 export function fillMissedWeeks<T extends WeekStatus>(
   checkins: T[],
-  currentWeek: number
+  currentWeek: number,
+  options: { includeCurrentIfMissing?: boolean } = {}
 ): WeekStatus[] {
   const byWeek = new Map(checkins.map((c) => [c.week_number, c] as const));
   const filled: WeekStatus[] = [];
@@ -29,6 +43,8 @@ export function fillMissedWeeks<T extends WeekStatus>(
   const currentEntry = byWeek.get(currentWeek);
   if (currentEntry) {
     filled.push({ week_number: currentWeek, status: currentEntry.status });
+  } else if (options.includeCurrentIfMissing) {
+    filled.push({ week_number: currentWeek, status: "missed" });
   }
   return filled;
 }

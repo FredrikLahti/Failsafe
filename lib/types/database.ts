@@ -10,16 +10,21 @@ export type DifficultyTier = "easy" | "medium" | "complex";
 
 export type ChallengeStatus =
   | "active"
+  | "paused"
   | "completed_success"
   | "completed_failure_paid"
   | "completed_failure_unpaid";
 
 export type CheckinStatus = "good" | "partial" | "bad" | "missed";
 
+/**
+ * Set automatically by calculateChallengeOutcome (lib/outcome.ts) once a
+ * challenge's active period ends — never chosen by the user. 'failed_unpaid'
+ * is reachable only as an admin-visible capture-decline state (see
+ * PAYMENTS.md, "capture_failed is an internal-only state") and is never
+ * written here.
+ */
 export type ReportOutcome = "completed" | "failed_paid" | "failed_unpaid";
-
-/** The only two outcomes the final-report form can submit — capture is automatic now. */
-export type SelectableReportOutcome = Extract<ReportOutcome, "completed" | "failed_paid">;
 
 export type ExperienceType = "dinner" | "tickets_event" | "trip" | "activity" | "other";
 
@@ -116,11 +121,24 @@ export type ChallengeRow = {
   stake_amount_cents: number | null;
   start_date: string;
   status: ChallengeStatus;
+  /** Set while a pause is in progress; null otherwise. See lib/pause.ts. */
+  paused_at: string | null;
+  /** Cumulative days from *completed* pauses only — see lib/pause.ts for the live (including in-progress) total. */
+  paused_days_total: number;
   share_token: string;
   reminder_cadence_days: number;
   last_reminder_at: string | null;
   created_at: string;
   completed_at: string | null;
+};
+
+export type ChallengePauseRow = {
+  id: string;
+  challenge_id: string;
+  started_at: string;
+  ended_at: string | null;
+  reason: string | null;
+  created_at: string;
 };
 
 export type CheckinRow = {
@@ -151,6 +169,8 @@ export type ChallengeShareRow = {
   difficulty_tier: DifficultyTier;
   duration_weeks_min: number;
   duration_weeks_max: number;
+  paused_at: string | null;
+  paused_days_total: number;
   beneficiaries: string[];
   experience_type: ExperienceType;
   experience_description: string;
@@ -210,6 +230,20 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "checkins_challenge_id_fkey";
+            columns: ["challenge_id"];
+            isOneToOne: false;
+            referencedRelation: "challenges";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      challenge_pauses: {
+        Row: ChallengePauseRow;
+        Insert: Partial<ChallengePauseRow> & { challenge_id: string };
+        Update: Partial<ChallengePauseRow>;
+        Relationships: [
+          {
+            foreignKeyName: "challenge_pauses_challenge_id_fkey";
             columns: ["challenge_id"];
             isOneToOne: false;
             referencedRelation: "challenges";

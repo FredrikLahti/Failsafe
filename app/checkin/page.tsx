@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppNav } from "@/components/AppNav";
 import { currentWeekNumber } from "@/lib/streak";
+import { totalPausedDaysAsOf } from "@/lib/pause";
+import { finalizeChallengeIfDue } from "@/lib/challenge-lifecycle";
 import { CheckinForm } from "@/components/CheckinForm";
 
 export default async function CheckinPage() {
@@ -11,18 +13,27 @@ export default async function CheckinPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/sign-in");
 
-  const { data: challenge } = await supabase
+  let { data: challenge } = await supabase
     .from("challenges")
     .select("*")
     .eq("user_id", user.id)
-    .eq("status", "active")
+    .in("status", ["active", "paused"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (!challenge) redirect("/dashboard");
 
-  const week = currentWeekNumber(challenge.start_date);
+  if (challenge.status === "active") {
+    const finalized = await finalizeChallengeIfDue(supabase, challenge);
+    if (finalized) redirect("/dashboard");
+  }
+
+  // No check-in is due while paused — nothing to fill in here.
+  if (challenge.status === "paused") redirect("/dashboard");
+
+  const pausedDays = totalPausedDaysAsOf(challenge);
+  const week = currentWeekNumber(challenge.start_date, pausedDays);
 
   const { data: existing } = await supabase
     .from("checkins")
