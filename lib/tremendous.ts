@@ -107,6 +107,17 @@ interface DeliverGiftCardsInput {
   totalAmountCents: number;
   /** Optional shared contact captured at onboarding — see reserveStake/challenges.beneficiary_email. */
   beneficiaryEmail?: string | null;
+  /** Optional shared contact captured at onboarding — see challenges.beneficiary_phone. Preferred over email when both are set. */
+  beneficiaryPhone?: string | null;
+}
+
+type DeliveryMethod = "PHONE" | "EMAIL" | "LINK";
+
+/** PHONE (SMS) is preferred over EMAIL over LINK when more than one contact method is on file — SMS is the most universally reachable option per user feedback. */
+function resolveDeliveryMethod(phone?: string | null, email?: string | null): DeliveryMethod {
+  if (phone?.trim()) return "PHONE";
+  if (email?.trim()) return "EMAIL";
+  return "LINK";
 }
 
 interface DeliveryRecoveryContext {
@@ -167,11 +178,11 @@ async function insertDeliveryWithRetry(
  * Creates one category-locked Tremendous reward per beneficiary and stores
  * the delivery record. Confirmed against Tremendous's own API spec:
  * recipient.email is optional (only `name` is required) — it's just the
- * field EMAIL delivery sends to. So: use real EMAIL delivery when a
- * beneficiary email was captured at onboarding (fully automatic, no share
- * page needed); otherwise use LINK delivery with no email at all,
- * surfacing the claim URL (reward.delivery.link) on the public share page
- * instead — Kinwin doesn't require beneficiary contact info by design.
+ * field EMAIL delivery sends to. Delivery method preference: PHONE (SMS) if
+ * a beneficiary phone number was captured at onboarding, else EMAIL if an
+ * address was captured, else LINK with no contact info at all, surfacing
+ * the claim URL (reward.delivery.link) on the public share page instead —
+ * Kinwin doesn't require beneficiary contact info by design.
  */
 export async function deliverGiftCards({
   challengeId,
@@ -179,10 +190,12 @@ export async function deliverGiftCards({
   experienceType,
   totalAmountCents,
   beneficiaryEmail,
+  beneficiaryPhone,
 }: DeliverGiftCardsInput): Promise<void> {
   const supabase = createServiceRoleClient();
   const configuredProductId = process.env[CATEGORY_PRODUCT_ENV[experienceType]];
   const amounts = splitEvenly(totalAmountCents, beneficiaries.length);
+  const method = resolveDeliveryMethod(beneficiaryPhone, beneficiaryEmail);
 
   if (!isTremendousConfigured() || !configuredProductId) {
     console.log(
@@ -190,10 +203,13 @@ export async function deliverGiftCards({
       JSON.stringify(
         beneficiaries.map((name, i) => ({
           challengeId,
-          recipient: beneficiaryEmail?.trim()
-            ? { name, email: beneficiaryEmail.trim() }
-            : { name },
-          delivery: beneficiaryEmail?.trim() ? "EMAIL" : "LINK",
+          recipient:
+            method === "PHONE"
+              ? { name, phone: beneficiaryPhone!.trim() }
+              : method === "EMAIL"
+                ? { name, email: beneficiaryEmail!.trim() }
+                : { name },
+          delivery: method,
           value: { denomination: centsToWholeUnits(amounts[i]), currency_code: "SEK" },
           experienceType,
         }))
@@ -213,8 +229,6 @@ export async function deliverGiftCards({
     }
     return;
   }
-
-  const hasRealEmail = Boolean(beneficiaryEmail?.trim());
 
   // Resolved once per challenge — every beneficiary shares the same
   // experience type, so the same catalog product and fallback decision
@@ -264,9 +278,14 @@ export async function deliverGiftCards({
             rewards: [
               {
                 value: { denomination, currency_code: "SEK" },
-                delivery: { method: hasRealEmail ? "EMAIL" : "LINK" },
+                delivery: { method },
                 products: [productId],
-                recipient: hasRealEmail ? { name, email: beneficiaryEmail!.trim() } : { name },
+                recipient:
+                  method === "PHONE"
+                    ? { name, phone: beneficiaryPhone!.trim() }
+                    : method === "EMAIL"
+                      ? { name, email: beneficiaryEmail!.trim() }
+                      : { name },
               },
             ],
           }),

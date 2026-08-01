@@ -6,6 +6,7 @@ import { formatBeneficiaries } from "@/lib/consequence";
 import { LetterCard } from "@/components/LetterCard";
 import { Button } from "@/components/ui";
 import { CopyInviteButton } from "@/components/CopyInviteButton";
+import { ShareInviteButton } from "@/components/ShareInviteButton";
 import { AddToHomeScreenPrompt } from "@/components/AddToHomeScreenPrompt";
 
 export default async function InvitePage({
@@ -38,6 +39,8 @@ export default async function InvitePage({
     beneficiaryNames,
     habitTitle: challenge.habit_title,
     frequency: challenge.frequency,
+    durationWeeksMin: challenge.duration_weeks_min,
+    durationWeeksMax: challenge.duration_weeks_max,
     experienceDescription: challenge.experience_description,
     shareUrl,
   });
@@ -61,6 +64,7 @@ export default async function InvitePage({
 
       <div className="max-w-xl mx-auto mt-8 flex flex-col sm:flex-row gap-3 justify-center">
         <CopyInviteButton text={message} />
+        <ShareInviteButton text={message} title="Kinwin challenge invite" />
         <Link href="/dashboard">
           <Button variant="secondary" className="w-full sm:w-auto">
             Go to my dashboard
@@ -79,28 +83,28 @@ function buildInviteMessage({
   beneficiaryNames,
   habitTitle,
   frequency,
+  durationWeeksMin,
+  durationWeeksMax,
   experienceDescription,
   shareUrl,
 }: {
   beneficiaryNames: string;
   habitTitle: string;
   frequency: string;
+  durationWeeksMin: number;
+  durationWeeksMax: number;
   experienceDescription: string;
   shareUrl: string;
 }) {
-  return `Dear ${beneficiaryNames},
+  return `Hey ${beneficiaryNames},
 
-I'm making you a promise — and putting something real behind it.
+I've started a challenge to build a habit: ${habitTitle} (${frequency}), over the next ${durationWeeksMin}-${durationWeeksMax} weeks.
 
-Starting today, I'm committing to: ${habitTitle} (${frequency}).
+If I fail, you get: ${experienceDescription}.
 
-If I fail to keep this promise, you'll get treated to: ${experienceDescription}.
+If I make it... well, you won't get that. Wish me luck!
 
-I just won't be there for it. It's yours, win or lose on my part.
+Follow along here: ${shareUrl}
 
-You can follow how it goes here:
-${shareUrl}
-
-With intention,
 Sent via Kinwin`;
 }

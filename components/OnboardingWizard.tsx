@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, ErrorText, Input, Label, Textarea } from "@/components/ui";
 import { HABIT_CATEGORIES, expectationCopy, DIFFICULTY_RANGES } from "@/lib/habits";
 import {
@@ -18,6 +18,27 @@ import { createChallenge } from "@/app/onboarding/actions";
 type Step = 1 | 2 | 3 | 4 | 5;
 type SelfCheck = "sting" | "no_big_deal" | null;
 
+/**
+ * Contacts Picker API — supported on Android Chrome only (not in TypeScript's
+ * DOM lib, so this is a minimal ambient shape rather than `any`). The manual
+ * text fields remain the primary path everywhere; this is a progressive
+ * enhancement layered on top where the browser actually supports it.
+ */
+interface PickedContact {
+  name?: string[];
+  tel?: string[];
+  email?: string[];
+}
+interface ContactsManager {
+  select(properties: string[], options?: { multiple?: boolean }): Promise<PickedContact[]>;
+}
+function getContactsManager(): ContactsManager | null {
+  if (typeof navigator === "undefined" || typeof window === "undefined") return null;
+  if (!("ContactsManager" in window)) return null;
+  const nav = navigator as Navigator & { contacts?: ContactsManager };
+  return nav.contacts ?? null;
+}
+
 export function OnboardingWizard() {
   const [step, setStep] = useState<Step>(1);
   const [category, setCategory] = useState<HabitCategory | null>(null);
@@ -27,17 +48,42 @@ export function OnboardingWizard() {
   const [cueAction, setCueAction] = useState("");
   const [beneficiaries, setBeneficiaries] = useState("");
   const [beneficiaryEmail, setBeneficiaryEmail] = useState("");
+  const [beneficiaryPhone, setBeneficiaryPhone] = useState("");
   const [experienceType, setExperienceType] = useState<ExperienceType>("dinner");
   const [experienceDescription, setExperienceDescription] = useState("");
   const [stakeAmount, setStakeAmount] = useState("");
   const [selfCheck, setSelfCheck] = useState<SelfCheck>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [contactsSupported, setContactsSupported] = useState(false);
+
+  useEffect(() => {
+    setContactsSupported(getContactsManager() !== null);
+  }, []);
 
   const definition = useMemo(
     () => HABIT_CATEGORIES.find((c) => c.id === category) ?? null,
     [category]
   );
+
+  async function handlePickContact() {
+    const contacts = getContactsManager();
+    if (!contacts) return;
+    try {
+      const [contact] = await contacts.select(["name", "tel", "email"], { multiple: false });
+      if (!contact) return;
+      const name = contact.name?.[0]?.trim();
+      if (name) {
+        setBeneficiaries((prev) => (prev.trim() ? `${prev.trim()}, ${name}` : name));
+      }
+      const phone = contact.tel?.[0]?.trim();
+      if (phone && !beneficiaryPhone.trim()) setBeneficiaryPhone(phone);
+      const email = contact.email?.[0]?.trim();
+      if (email && !beneficiaryEmail.trim()) setBeneficiaryEmail(email);
+    } catch {
+      // User canceled the native picker, or the browser denied it — nothing to do.
+    }
+  }
 
   function selectCategory(id: HabitCategory) {
     const def = HABIT_CATEGORIES.find((c) => c.id === id)!;
@@ -65,6 +111,7 @@ export function OnboardingWizard() {
         cueAction,
         beneficiaries,
         beneficiaryEmail,
+        beneficiaryPhone,
         experienceType,
         experienceDescription,
         stakeAmountCents: Math.round(kronor * 100),
@@ -171,7 +218,18 @@ export function OnboardingWizard() {
 
             <div className="space-y-5">
               <div>
-                <Label htmlFor="beneficiaries">Who benefits if you fail</Label>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="beneficiaries">Who benefits if you fail</Label>
+                  {contactsSupported && (
+                    <button
+                      type="button"
+                      onClick={handlePickContact}
+                      className="mb-1.5 text-xs text-gold hover:underline whitespace-nowrap"
+                    >
+                      Pick from contacts
+                    </button>
+                  )}
+                </div>
                 <Input
                   id="beneficiaries"
                   placeholder="Mom, Grandma and Aunt Clara"
@@ -179,6 +237,21 @@ export function OnboardingWizard() {
                   onChange={(e) => setBeneficiaries(e.target.value)}
                 />
                 <p className="mt-1.5 text-xs text-ash">Separate names with commas.</p>
+              </div>
+
+              <div>
+                <Label htmlFor="beneficiary-phone">Their phone number (optional)</Label>
+                <Input
+                  id="beneficiary-phone"
+                  type="tel"
+                  placeholder="+46 70 123 45 67"
+                  value={beneficiaryPhone}
+                  onChange={(e) => setBeneficiaryPhone(e.target.value)}
+                />
+                <p className="mt-1.5 text-xs text-ash">
+                  Used to text the gift card directly if you fail — the most reliable way to
+                  reach most people. Preferred over email if you give us both.
+                </p>
               </div>
 
               <div>
@@ -191,8 +264,8 @@ export function OnboardingWizard() {
                   onChange={(e) => setBeneficiaryEmail(e.target.value)}
                 />
                 <p className="mt-1.5 text-xs text-ash">
-                  Only used to email the gift card directly if you fail. Leave it blank and
-                  we&rsquo;ll put a claim link on the page you already send them.
+                  Used to email the gift card if you fail and no phone number is given. Leave
+                  both blank and we&rsquo;ll put a claim link on the page you already send them.
                 </p>
               </div>
 

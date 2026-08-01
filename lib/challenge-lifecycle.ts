@@ -78,6 +78,7 @@ export async function finalizeChallengeIfDue(
       beneficiaries: challenge.beneficiaries,
       experienceType: challenge.experience_type,
       beneficiaryEmail: challenge.beneficiary_email,
+      beneficiaryPhone: challenge.beneficiary_phone,
     });
   }
 

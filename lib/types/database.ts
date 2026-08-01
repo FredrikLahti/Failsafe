@@ -115,6 +115,8 @@ export type ChallengeRow = {
   beneficiaries: string[];
   /** Optional shared contact — when set, gift-card delivery uses Tremendous EMAIL instead of LINK. */
   beneficiary_email: string | null;
+  /** Optional shared contact — when set, gift-card delivery uses Tremendous PHONE (SMS), preferred over EMAIL and LINK. */
+  beneficiary_phone: string | null;
   experience_type: ExperienceType;
   experience_description: string;
   /** The real stake: saved as a payment method at creation, captured only if the challenge fails. */

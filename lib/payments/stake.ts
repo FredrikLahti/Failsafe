@@ -100,7 +100,12 @@ export async function releaseStake(challengeId: string): Promise<void> {
  */
 export async function captureStake(
   challengeId: string,
-  input: { beneficiaries: string[]; experienceType: ExperienceType; beneficiaryEmail?: string | null }
+  input: {
+    beneficiaries: string[];
+    experienceType: ExperienceType;
+    beneficiaryEmail?: string | null;
+    beneficiaryPhone?: string | null;
+  }
 ): Promise<void> {
   const supabase = createServiceRoleClient();
 
@@ -173,6 +178,7 @@ export async function captureStake(
       experienceType: input.experienceType,
       totalAmountCents: stake.amount_cents,
       beneficiaryEmail: input.beneficiaryEmail,
+      beneficiaryPhone: input.beneficiaryPhone,
     });
   } catch (err) {
     console.error(`[stake] captureStake: charge failed for challenge ${challengeId}:`, err instanceof Error ? err.message : err);

@@ -15,6 +15,7 @@ export interface CreateChallengeInput {
   cueAction: string;
   beneficiaries: string;
   beneficiaryEmail: string;
+  beneficiaryPhone: string;
   experienceType: ExperienceType;
   experienceDescription: string;
   stakeAmountCents: number;
@@ -51,6 +52,7 @@ export async function createChallenge(input: CreateChallengeInput) {
       cue_action: input.cueAction.trim(),
       beneficiaries: parseBeneficiaries(input.beneficiaries),
       beneficiary_email: input.beneficiaryEmail.trim() || null,
+      beneficiary_phone: input.beneficiaryPhone.trim() || null,
       experience_type: input.experienceType,
       experience_description: input.experienceDescription.trim(),
       stake_amount_cents: input.stakeAmountCents,

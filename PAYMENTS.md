@@ -39,10 +39,20 @@ as `Failed (capture declined)`. `challenges.status` gets flipped to the
 pre-existing `completed_failure_unpaid` value for that admin visibility,
 reusing a status value that used to be user-selectable and no longer is.
 
-## Gift card delivery: LINK by default, EMAIL when we have an address
+## Gift card delivery: LINK by default, PHONE/EMAIL when we have contact info
 
 Kinwin doesn't require a beneficiary's email or phone by design — the
-whole point is that the user sends the invite themselves.
+whole point is that the user sends the invite themselves. When more than
+one contact method is on file, `resolveDeliveryMethod` in
+`lib/tremendous.ts` prefers **PHONE (SMS) over EMAIL over LINK** — SMS is
+the more universally available option per user feedback (not everyone
+checks email, nearly everyone gets texts). `challenges.beneficiary_phone`
+(migration 0006) mirrors `beneficiary_email`: optional, single shared
+contact for the whole challenge, same tradeoff noted below. The PHONE path
+hasn't been exercised against the live sandbox (unlike EMAIL and LINK,
+verified further down) — sending a real test SMS requires a real phone
+number to send it to, which wasn't available in the environment this was
+built in.
 
 **Verified directly against Tremendous's API Blueprint spec
 (`tremendous-rewards/api-docs`) and their openapi-generated Node client
