@@ -119,7 +119,7 @@ export default async function AdminPage() {
                 const effectiveMax = effectiveDurationWeeksMax(c.duration_weeks_max, pausedDays);
                 const weeks = fillMissedWeeks(checkins, week);
                 const streak = computeStreak(weeks);
-                const email = c.profiles?.email ?? "—";
+                const email = c.profiles?.email ?? "N/A";
                 const inProgress = c.status === "active" || c.status === "paused";
                 return (
                   <tr key={c.id} className="border-b border-sage/10">
@@ -137,13 +137,13 @@ export default async function AdminPage() {
                     <td className="py-2 pr-4">
                       {stakeByChallenge.has(c.id)
                         ? STAKE_STATUS_LABEL[stakeByChallenge.get(c.id)!]
-                        : "—"}
+                        : "N/A"}
                     </td>
                     <td className="py-2 pr-4 font-mono">
-                      {inProgress ? `wk ${week} of ${c.duration_weeks_min}-${effectiveMax}` : "—"}
+                      {inProgress ? `wk ${week} of ${c.duration_weeks_min}-${effectiveMax}` : "N/A"}
                     </td>
                     <td className="py-2 pr-4 font-mono">{streak}</td>
-                    <td className="py-2 pr-4 font-mono">{c.paused_days_total > 0 ? `${c.paused_days_total}d` : "—"}</td>
+                    <td className="py-2 pr-4 font-mono">{c.paused_days_total > 0 ? `${c.paused_days_total}d` : "N/A"}</td>
                     <td className="py-2 pr-4">{c.start_date}</td>
                     <td className="py-2 pr-4">
                       <Link href={`/share/${c.share_token}`} className="text-gold">

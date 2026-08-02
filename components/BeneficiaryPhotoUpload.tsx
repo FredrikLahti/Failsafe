@@ -24,7 +24,7 @@ export function BeneficiaryPhotoUpload({ shareToken }: { shareToken: string }) {
   }
 
   if (done) {
-    return <p className="text-sm text-sage">Thank you — added to their Memory Lane.</p>;
+    return <p className="text-sm text-sage">Thank you. Added to their Memory Lane.</p>;
   }
 
   return (

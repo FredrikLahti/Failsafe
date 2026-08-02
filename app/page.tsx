@@ -66,7 +66,7 @@ export default async function LandingPage() {
               <HowItWorksCard
                 step="1"
                 title="Pick a habit"
-                body="Choose from six proven categories. We suggest a minimal starting version, a realistic frequency, and an honest timeline — because most habits take weeks, not days."
+                body="Choose from six proven categories. We suggest a minimal starting version, a realistic frequency, and an honest timeline, because most habits take weeks, not days."
               />
               <HowItWorksCard
                 step="2"

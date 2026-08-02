@@ -58,7 +58,7 @@ export function ChallengeSummaryForm({
           isSuccess ? "border-gold/50 bg-gold/10" : "border-ember/50 bg-ember/10"
         }`}
       >
-        <p className="font-medium">{isSuccess ? "Completed — the habit stuck." : "Not completed this time."}</p>
+        <p className="font-medium">{isSuccess ? "Completed. The habit stuck." : "Not completed this time."}</p>
         <p className="text-xs text-ash mt-1">
           {isSuccess
             ? `${habitTitle} stuck. ${beneficiaryNames} never had to be treated.`

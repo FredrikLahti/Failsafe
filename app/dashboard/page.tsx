@@ -127,14 +127,14 @@ async function ActiveChallengePanel({ challenge }: { challenge: ChallengeRow }) 
 
       {!isPaused && missedInARow >= 2 && (
         <div className="mb-6 rounded-md border border-gold/50 bg-gold/10 px-4 py-3 text-sm">
-          It&rsquo;s been two weeks since your last check-in. No judgment — just
+          It&rsquo;s been two weeks since your last check-in. No judgment, just
           pick back up when you can. Even a short note helps you see the shape
           of the week.
         </div>
       )}
       {!isPaused && missedInARow === 1 && (
         <div className="mb-6 rounded-md border border-sage/40 bg-sage/10 px-4 py-3 text-sm text-parchment/80">
-          You missed last week&rsquo;s check-in. That happens — just pick it back up this week.
+          You missed last week&rsquo;s check-in. That happens. Just pick it back up this week.
         </div>
       )}
 
@@ -223,7 +223,7 @@ function EmptyState() {
   return (
     <div className="text-center py-16">
       <h1 className="font-display text-2xl mb-3">No active challenge yet</h1>
-      <p className="text-parchment/70 mb-6">Start one — pick a habit and a consequence.</p>
+      <p className="text-parchment/70 mb-6">Start one. Pick a habit and a consequence.</p>
       <Link href="/onboarding">
         <Button>Start a challenge</Button>
       </Link>
@@ -240,9 +240,9 @@ function PastChallengeRow({
 }) {
   const statusLabel: Record<string, string> = {
     completed_success: "Completed",
-    completed_failure_paid: "Failed — consequence paid",
+    completed_failure_paid: "Failed, consequence paid",
     // Reached only via a declined capture (e.g. card decline), never a user choice.
-    completed_failure_unpaid: "Failed — payment couldn't be processed",
+    completed_failure_unpaid: "Failed, payment couldn't be processed",
   };
   return (
     <div className="flex items-center justify-between rounded-md border border-sage/20 px-4 py-3">

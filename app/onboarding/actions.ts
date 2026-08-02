@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getHabitCategory, DIFFICULTY_RANGES } from "@/lib/habits";
-import { parseBeneficiaries } from "@/lib/consequence";
+import { cleanBeneficiaryNames } from "@/lib/consequence";
 import { hasActiveSubscription, reserveStake } from "@/lib/payments/stake";
 import type { ExperienceType, HabitCategory } from "@/lib/types/database";
 
@@ -13,7 +13,7 @@ export interface CreateChallengeInput {
   frequency: string;
   cueSituation: string;
   cueAction: string;
-  beneficiaries: string;
+  beneficiaries: string[];
   beneficiaryEmail: string;
   beneficiaryPhone: string;
   experienceType: ExperienceType;
@@ -50,7 +50,7 @@ export async function createChallenge(input: CreateChallengeInput) {
       duration_weeks_max: range.max,
       cue_situation: input.cueSituation.trim(),
       cue_action: input.cueAction.trim(),
-      beneficiaries: parseBeneficiaries(input.beneficiaries),
+      beneficiaries: cleanBeneficiaryNames(input.beneficiaries),
       beneficiary_email: input.beneficiaryEmail.trim() || null,
       beneficiary_phone: input.beneficiaryPhone.trim() || null,
       experience_type: input.experienceType,

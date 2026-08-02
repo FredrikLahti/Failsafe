@@ -8,7 +8,7 @@ import { BeneficiaryPhotoUpload } from "@/components/BeneficiaryPhotoUpload";
 import { getHabitCategory } from "@/lib/habits";
 import { currentWeekNumber } from "@/lib/streak";
 import { effectiveDurationWeeksMax, totalPausedDaysAsOf } from "@/lib/pause";
-import { experienceTypeLabel, formatBeneficiaries } from "@/lib/consequence";
+import { experienceTypeLabel, formatBeneficiaries, formatStakeAmount } from "@/lib/consequence";
 
 export default async function SharePage({
   params,
@@ -64,11 +64,11 @@ export default async function SharePage({
         </p>
         {isActive ? (
           <p className="mb-4">
-            I&rsquo;m {currentWeekNumber(share.start_date, pausedDays)} weeks into an{" "}
-            {share.duration_weeks_min}-{effectiveMax} week
-            challenge{isPaused ? ", currently paused" : ""}. If I don&rsquo;t pull it off,{" "}
-            {beneficiaryNames} get {share.experience_description}. I&rsquo;m just not
-            allowed to be there for it.
+            {`I’m ${currentWeekNumber(share.start_date, pausedDays)} weeks into an ${share.duration_weeks_min}-${effectiveMax} week challenge${isPaused ? ", currently paused" : ""}. If I don’t pull it off, ${beneficiaryNames} get ${share.experience_description}${
+              share.stake_amount_cents != null
+                ? `, worth ${formatStakeAmount(share.stake_amount_cents)}`
+                : ""
+            }. I’m just not allowed to be there for it.`}
           </p>
         ) : isSuccess ? (
           <p className="mb-4">

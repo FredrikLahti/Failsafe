@@ -38,11 +38,11 @@ export async function reserveStake(
 
   if (profileError) {
     console.error(`[stake] reserveStake: profile lookup failed for user ${userId}:`, profileError.message);
-    return { ok: false, reason: "Could not look up your billing profile — try again." };
+    return { ok: false, reason: "Could not look up your billing profile. Try again." };
   }
 
   if (!profile?.stripe_customer_id) {
-    return { ok: false, reason: "No Stripe customer on file — subscribe first." };
+    return { ok: false, reason: "No Stripe customer on file. Subscribe first." };
   }
 
   let paymentMethodId: string | null = null;

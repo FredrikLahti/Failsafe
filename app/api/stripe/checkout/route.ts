@@ -15,7 +15,7 @@ export async function POST() {
 
   if (!isStripeConfigured()) {
     return NextResponse.json(
-      { error: "Billing isn't configured yet — set STRIPE_SECRET_KEY." },
+      { error: "Billing isn't configured yet. Set STRIPE_SECRET_KEY." },
       { status: 503 }
     );
   }

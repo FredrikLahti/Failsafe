@@ -50,7 +50,7 @@ export default async function MemoryLanePage() {
 
         {cards.length === 0 ? (
           <p className="text-parchment/70">
-            Nothing here yet — completed challenges with a photo will show up as framed cards.
+            Nothing here yet. Completed challenges with a photo will show up as framed cards.
           </p>
         ) : (
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">

@@ -7,10 +7,10 @@ import {
   CONSEQUENCE_ANCHOR_COPY,
   CONSEQUENCE_ANCHOR_EXAMPLES,
   EXPERIENCE_TYPES,
+  cleanBeneficiaryNames,
   consequenceSentence,
   experienceTypeLabel,
   formatBeneficiaries,
-  parseBeneficiaries,
 } from "@/lib/consequence";
 import type { ExperienceType, HabitCategory } from "@/lib/types/database";
 import { createChallenge } from "@/app/onboarding/actions";
@@ -46,7 +46,7 @@ export function OnboardingWizard() {
   const [frequency, setFrequency] = useState("");
   const [cueSituation, setCueSituation] = useState("");
   const [cueAction, setCueAction] = useState("");
-  const [beneficiaries, setBeneficiaries] = useState("");
+  const [beneficiaries, setBeneficiaries] = useState<string[]>([""]);
   const [beneficiaryEmail, setBeneficiaryEmail] = useState("");
   const [beneficiaryPhone, setBeneficiaryPhone] = useState("");
   const [experienceType, setExperienceType] = useState<ExperienceType>("dinner");
@@ -66,6 +66,23 @@ export function OnboardingWizard() {
     [category]
   );
 
+  const cleanedBeneficiaries = useMemo(
+    () => cleanBeneficiaryNames(beneficiaries),
+    [beneficiaries]
+  );
+
+  function updateBeneficiaryRow(index: number, value: string) {
+    setBeneficiaries((prev) => prev.map((b, i) => (i === index ? value : b)));
+  }
+
+  function addBeneficiaryRow() {
+    setBeneficiaries((prev) => [...prev, ""]);
+  }
+
+  function removeBeneficiaryRow(index: number) {
+    setBeneficiaries((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+  }
+
   async function handlePickContact() {
     const contacts = getContactsManager();
     if (!contacts) return;
@@ -74,7 +91,11 @@ export function OnboardingWizard() {
       if (!contact) return;
       const name = contact.name?.[0]?.trim();
       if (name) {
-        setBeneficiaries((prev) => (prev.trim() ? `${prev.trim()}, ${name}` : name));
+        setBeneficiaries((prev) => {
+          const emptyIndex = prev.findIndex((b) => !b.trim());
+          if (emptyIndex !== -1) return prev.map((b, i) => (i === emptyIndex ? name : b));
+          return [...prev, name];
+        });
       }
       const phone = contact.tel?.[0]?.trim();
       if (phone && !beneficiaryPhone.trim()) setBeneficiaryPhone(phone);
@@ -109,7 +130,7 @@ export function OnboardingWizard() {
         frequency,
         cueSituation,
         cueAction,
-        beneficiaries,
+        beneficiaries: cleanedBeneficiaries,
         beneficiaryEmail,
         beneficiaryPhone,
         experienceType,
@@ -208,7 +229,10 @@ export function OnboardingWizard() {
             onBack={() => setStep(3)}
             onNext={() => setStep(5)}
             nextDisabled={
-              !beneficiaries.trim() || !experienceDescription.trim() || !stakeAmount.trim()
+              cleanedBeneficiaries.length === 0 ||
+              !experienceDescription.trim() ||
+              !stakeAmount.trim() ||
+              selfCheck === null
             }
           >
             <p className="text-sm text-parchment/70 mb-6">
@@ -230,13 +254,35 @@ export function OnboardingWizard() {
                     </button>
                   )}
                 </div>
-                <Input
-                  id="beneficiaries"
-                  placeholder="Mom, Grandma and Aunt Clara"
-                  value={beneficiaries}
-                  onChange={(e) => setBeneficiaries(e.target.value)}
-                />
-                <p className="mt-1.5 text-xs text-ash">Separate names with commas.</p>
+                <div className="space-y-2">
+                  {beneficiaries.map((name, i) => (
+                    <div key={i} className="flex gap-2">
+                      <Input
+                        id={i === 0 ? "beneficiaries" : undefined}
+                        placeholder={i === 0 ? "Mom" : "Another person"}
+                        value={name}
+                        onChange={(e) => updateBeneficiaryRow(i, e.target.value)}
+                      />
+                      {beneficiaries.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeBeneficiaryRow(i)}
+                          aria-label={`Remove ${name.trim() || "this person"}`}
+                          className="shrink-0 px-3 rounded-md border border-sage/40 text-ash hover:text-parchment hover:border-sage transition-colors"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addBeneficiaryRow}
+                  className="mt-2 text-xs text-gold hover:underline"
+                >
+                  + Add another person
+                </button>
               </div>
 
               <div>
@@ -249,7 +295,7 @@ export function OnboardingWizard() {
                   onChange={(e) => setBeneficiaryPhone(e.target.value)}
                 />
                 <p className="mt-1.5 text-xs text-ash">
-                  Used to text the gift card directly if you fail — the most reliable way to
+                  Used to text the gift card directly if you fail, the most reliable way to
                   reach most people. Preferred over email if you give us both.
                 </p>
               </div>
@@ -288,7 +334,7 @@ export function OnboardingWizard() {
                 </p>
               </div>
 
-              <div className="rounded-md border border-ember/40 bg-ember/10 px-4 py-4">
+              <div className="rounded-md border border-sage/40 px-4 py-4">
                 <p className="text-sm text-parchment/85 mb-3">{CONSEQUENCE_ANCHOR_COPY}</p>
                 <div className="flex flex-wrap gap-2">
                   {CONSEQUENCE_ANCHOR_EXAMPLES.map((example) => (
@@ -299,7 +345,7 @@ export function OnboardingWizard() {
                         setExperienceDescription(example.description);
                         setExperienceType(example.experienceType);
                       }}
-                      className="text-xs rounded-full border border-ember/50 px-3 py-1.5 hover:bg-ember/20 transition-colors"
+                      className="text-xs rounded-full border border-sage/50 px-3 py-1.5 hover:bg-sage/20 transition-colors"
                     >
                       {example.description}
                     </button>
@@ -331,14 +377,14 @@ export function OnboardingWizard() {
                   onChange={(e) => setStakeAmount(e.target.value)}
                 />
                 <p className="mt-1.5 text-xs text-ash">
-                  This is the amount we charge only if you fail. Nothing is charged up front — it&rsquo;s saved against your card on file and captured only on failure.
+                  This is the amount we charge only if you fail. Nothing is charged up front. It&rsquo;s saved against your card on file and captured only on failure.
                 </p>
               </div>
 
-              {beneficiaries.trim() && experienceDescription.trim() && (
+              {cleanedBeneficiaries.length > 0 && experienceDescription.trim() && (
                 <p className="text-sm text-parchment/60 font-mono">
                   &ldquo;{consequenceSentence({
-                    beneficiaries: parseBeneficiaries(beneficiaries),
+                    beneficiaries: cleanedBeneficiaries,
                     experienceDescription,
                   })}&rdquo;
                 </p>
@@ -375,7 +421,7 @@ export function OnboardingWizard() {
                   </div>
                   {selfCheck === "no_big_deal" && (
                     <p className="mt-3 text-sm text-gold">
-                      Consider going bigger — the whole point is that you really don&rsquo;t want to lose this challenge.
+                      Consider going bigger. The whole point is that you really don&rsquo;t want to lose this challenge.
                     </p>
                   )}
                 </div>
@@ -402,12 +448,12 @@ export function OnboardingWizard() {
               <ReviewRow
                 label="Consequence"
                 value={consequenceSentence({
-                  beneficiaries: parseBeneficiaries(beneficiaries),
+                  beneficiaries: cleanedBeneficiaries,
                   experienceDescription,
                 })}
               />
               <ReviewRow label="Experience type" value={experienceTypeLabel(experienceType)} />
-              <ReviewRow label="Beneficiaries" value={formatBeneficiaries(parseBeneficiaries(beneficiaries))} />
+              <ReviewRow label="Beneficiaries" value={formatBeneficiaries(cleanedBeneficiaries)} />
               <ReviewRow label="Stake amount" value={`${stakeAmount} SEK, charged only if you fail`} />
             </dl>
             <ErrorText>{error}</ErrorText>

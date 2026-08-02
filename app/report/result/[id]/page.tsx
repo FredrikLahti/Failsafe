@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatBeneficiaries } from "@/lib/consequence";
 import { LetterCard } from "@/components/LetterCard";
 import { Button } from "@/components/ui";
+import { AppNav } from "@/components/AppNav";
 
 export default async function ReportResultPage({
   params,
@@ -38,7 +39,9 @@ export default async function ReportResultPage({
   const beneficiaryNames = formatBeneficiaries(challenge.beneficiaries);
 
   return (
-    <div className="flex-1 px-6 py-14">
+    <div className="flex-1 flex flex-col">
+      <AppNav email={user.email} />
+      <div className="flex-1 px-6 py-14">
       <LetterCard
         variant={variant}
         eyebrow={isSuccess ? "Promise Kept" : "The Consequence"}
@@ -102,6 +105,7 @@ export default async function ReportResultPage({
         <Link href="/dashboard">
           <Button className="w-full sm:w-auto">Back to dashboard</Button>
         </Link>
+      </div>
       </div>
     </div>
   );

@@ -32,14 +32,17 @@ export function formatBeneficiaries(beneficiaries: string[]): string {
   if (names.length === 0) return "the people you name";
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
-  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
-export function parseBeneficiaries(raw: string): string[] {
-  return raw
-    .split(",")
-    .map((name) => name.trim())
-    .filter(Boolean);
+/** Trims and drops empty rows from the structured beneficiary name list. */
+export function cleanBeneficiaryNames(names: string[]): string[] {
+  return names.map((name) => name.trim()).filter(Boolean);
+}
+
+/** Whole-kronor SEK display, e.g. 40000 cents -> "400 SEK". */
+export function formatStakeAmount(cents: number): string {
+  return `${Math.round(cents / 100)} SEK`;
 }
 
 /**

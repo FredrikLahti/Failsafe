@@ -55,7 +55,7 @@ export const HABIT_CATEGORIES: HabitCategoryDefinition[] = [
   {
     id: "saving",
     label: "Saving / finances",
-    tagline: "Small, boring, automatic — the habit that compounds.",
+    tagline: "Small, boring, automatic. The habit that compounds.",
     difficulty: "medium",
     starterHabit: "Move a fixed small amount into savings",
     suggestedFrequency: "Once per week",

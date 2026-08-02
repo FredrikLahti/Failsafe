@@ -37,15 +37,15 @@ export function LetterCard({
 }) {
   return (
     <div
-      className={`deckle-edge relative mx-auto max-w-xl bg-parchment text-ink shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border ${BORDER_BY_VARIANT[variant]} px-8 py-10 sm:px-12 sm:py-14 ${className}`}
+      className={`deckle-edge relative mx-auto max-w-xl bg-parchment text-ink shadow-[0_12px_36px_-18px_rgba(0,0,0,0.4)] border ${BORDER_BY_VARIANT[variant]} px-8 py-10 sm:px-12 sm:py-14 ${className}`}
     >
       {showSeal && (
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center mb-4">
           <WaxSeal variant={SEAL_BY_VARIANT[variant]} />
         </div>
       )}
       {eyebrow && (
-        <p className="text-center font-mono text-xs tracking-[0.2em] uppercase text-ash mb-3">
+        <p className="text-center font-mono text-xs tracking-[0.15em] uppercase text-ash/80 mb-3">
           {eyebrow}
         </p>
       )}

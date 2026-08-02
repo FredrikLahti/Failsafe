@@ -183,6 +183,7 @@ export type ChallengeShareRow = {
   photo_url: string | null;
   photo_type: PhotoType | null;
   owner_display_name: string | null;
+  stake_amount_cents: number | null;
 };
 
 export type Database = {
